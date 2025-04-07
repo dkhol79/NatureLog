@@ -4,12 +4,16 @@ const axios = require('axios');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const Journal = require('../models/Journal');
+const User = require('../models/User');
+require('dotenv').config();
 
+// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${ uniqueSuffix }-${ file.originalname }`);
+    cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });
 const upload = multer({
@@ -19,198 +23,243 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
     else cb(new Error('Invalid file type'));
   },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-module.exports = (journals, users, saveData) => {
-  const authenticate = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
-    try {
-      req.user = jwt.verify(token, 'secret');
-      next();
-    } catch (err) {
-      res.status(401).json({ error: 'Invalid token' });
-    }
-  };
+// Helper function to parse "Town, State" from full address
+const parseTownState = (address) => {
+  if (!address) return 'Unknown';
+  const parts = address.split(', ').map(part => part.trim());
+  if (parts.length >= 3) {
+    return `${parts[1]}, ${parts[2]}`;
+  }
+  return address;
+};
 
-  router.post('/', authenticate, upload.fields([
-    { name: 'photos', maxCount: 5 },
-    { name: 'videos', maxCount: 2 },
-    { name: 'audio', maxCount: 1 },
-  ]), async (req, res) => {
-    const { title, content, category, lat, lng, location, isPublic, date } = req.body;
+// Middleware to authenticate JWT
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token verified, user ID:', req.user.id);
+    next();
+  } catch (err) {
+    console.error('Token verification failed:', err.message);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
-    console.log('Received request body:', req.body);
+// POST: Create a new journal entry
+router.post('/', authenticate, upload.fields([
+  { name: 'photos', maxCount: 5 },
+  { name: 'videos', maxCount: 2 },
+  { name: 'audio', maxCount: 1 },
+]), async (req, res) => {
+  const { title, content, category, lat, lng, location, isPublic, date } = req.body;
 
-    const validCategories = [
-      'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
-    ];
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({ error: 'Invalid category' });
-    }
+  console.log('POST /api/journal - Request body:', req.body);
+  console.log('POST /api/journal - Uploaded files:', req.files);
 
-    if (!location) {
-      return res.status(400).json({ error: 'Location is required' });
-    }
+  const validCategories = [
+    'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
+  ];
 
-    let weatherData;
-    try {
-      const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${ lat }&lon=${ lng }&appid=${ apiKey }`
-      );
-      weatherData = response.data;
-    } catch (err) {
-      console.error('Weather API error:', err.message);
-      weatherData = { main: { temp: 'N/A' } };
-    }
+  if (!title || !content || !location) {
+    return res.status(400).json({ error: 'Title, content, and location are required' });
+  }
+  if (!validCategories.includes(category)) {
+    return res.status(400).json({ error: 'Invalid category' });
+  }
+  if (!lat || !lng) {
+    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  }
 
-    const user = users.find(u => u.id === req.user.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+  let weatherData;
+  try {
+    const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
+    const response = await axios.get(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
+    );
+    weatherData = response.data;
+  } catch (err) {
+    console.error('Weather API error:', err.message);
+    weatherData = { main: { temp: 'N/A' } };
+  }
 
-    const entry = {
-      id: journals.length + 1,
-      userId: req.user.id,
-      username: user.username,
-      title,
-      content,
-      category,
-      geolocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
-      location: location || 'Unknown',
-      weather: weatherData,
-      isPublic: isPublic === 'true',
-      timestamp: new Date(),
-      date: date || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-      photos: req.files.photos ? req.files.photos.map(f => f.path) : [],
-      videos: req.files.videos ? req.files.videos.map(f => f.path) : [],
-      audio: req.files.audio ? req.files.audio[0]?.path : null,
-    };
-    journals.push(entry);
-    saveData();
-    res.json(entry);
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const parsedLocation = parseTownState(location);
+
+  const entry = new Journal({
+    userId: req.user.id,
+    title,
+    content,
+    category,
+    geolocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
+    location: parsedLocation,
+    weather: weatherData,
+    isPublic: isPublic === 'true',
+    timestamp: new Date(),
+    username: user.username,
+    photos: req.files.photos ? req.files.photos.map(f => f.path) : [],
+    videos: req.files.videos ? req.files.videos.map(f => f.path) : [],
+    audio: req.files.audio ? req.files.audio[0]?.path : null,
+    date,
   });
 
-  router.put('/:id', authenticate, upload.fields([
-    { name: 'photos', maxCount: 5 },
-    { name: 'videos', maxCount: 2 },
-    { name: 'audio', maxCount: 1 },
-  ]), async (req, res) => {
-    const entryId = parseInt(req.params.id);
-    const entryIndex = journals.findIndex(j => j.id === entryId);
+  try {
+    await entry.save();
+    res.status(201).json(entry);
+  } catch (err) {
+    console.error('Error saving journal:', err);
+    res.status(500).json({ error: 'Failed to save journal entry' });
+  }
+});
 
-    if (entryIndex === -1) {
+// GET: Fetch all user journals
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const userJournals = await Journal.find({ userId: req.user.id });
+    res.json(userJournals);
+  } catch (err) {
+    console.error('Error fetching journals:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET: Fetch community journals
+router.get('/community', async (req, res) => {
+  try {
+    const publicJournals = await Journal.find({ isPublic: true });
+    res.json(publicJournals);
+  } catch (err) {
+    console.error('Error fetching community journals:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET: Fetch a single journal entry
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const entry = await Journal.findById(req.params.id);
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+    if (entry.userId.toString() !== req.user.id && !entry.isPublic) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    res.json(entry);
+  } catch (err) {
+    console.error('Error fetching journal:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT: Update a journal entry
+router.put('/:id', authenticate, upload.fields([
+  { name: 'photos', maxCount: 5 },
+  { name: 'videos', maxCount: 2 },
+  { name: 'audio', maxCount: 1 },
+]), async (req, res) => {
+  const { title, content, category, location, isPublic, date, lat, lng } = req.body;
+
+  const validCategories = [
+    'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
+  ];
+
+  try {
+    const existingEntry = await Journal.findById(req.params.id);
+    if (!existingEntry) return res.status(404).json({ error: 'Entry not found' });
+    if (existingEntry.userId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (content) updateData.content = content;
+    if (category) {
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({ error: 'Invalid category' });
+      }
+      updateData.category = category;
+    }
+    if (location) updateData.location = parseTownState(location);
+    if (isPublic !== undefined) updateData.isPublic = isPublic === 'true';
+    if (date) updateData.date = date;
+
+    if (lat && lng) {
+      updateData.geolocation = {
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+      };
+      try {
+        const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
+        const response = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
+        );
+        updateData.weather = response.data;
+      } catch (err) {
+        console.error('Weather API error during update:', err.message);
+        updateData.weather = existingEntry.weather;
+      }
+    }
+
+    if (req.files.photos) {
+      updateData.photos = req.files.photos.map(f => f.path);
+    } else {
+      updateData.photos = existingEntry.photos;
+    }
+    if (req.files.videos) {
+      updateData.videos = req.files.videos.map(f => f.path);
+    } else {
+      updateData.videos = existingEntry.videos;
+    }
+    if (req.files.audio) {
+      updateData.audio = req.files.audio[0].path;
+    } else {
+      updateData.audio = existingEntry.audio;
+    }
+
+    const updatedEntry = await Journal.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    res.json(updatedEntry);
+  } catch (err) {
+    console.error('Error updating journal:', err);
+    res.status(500).json({ error: 'Failed to update journal entry' });
+  }
+});
+
+// DELETE: Delete a journal entry
+router.delete('/:id', authenticate, async (req, res) => {
+  console.log(`DELETE /api/journal/${req.params.id} - Request received`);
+  console.log('User ID from token:', req.user.id);
+
+  try {
+    const entry = await Journal.findById(req.params.id);
+    if (!entry) {
+      console.log(`Entry ${req.params.id} not found`);
       return res.status(404).json({ error: 'Entry not found' });
     }
+    console.log('Entry found:', { id: entry._id, userId: entry.userId });
 
-    if (journals[entryIndex].userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to edit this entry' });
+    if (entry.userId.toString() !== req.user.id) {
+      console.log(`Permission denied: Entry userId ${entry.userId} does not match req.user.id ${req.user.id}`);
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const { title, content, category, lat, lng, location, isPublic, date } = req.body;
+    await Journal.findByIdAndDelete(req.params.id); // Replaced entry.remove()
+    console.log(`Entry ${req.params.id} deleted successfully`);
+    res.status(200).json({ message: 'Entry deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting journal:', err.message, err.stack);
+    res.status(500).json({ error: 'Failed to delete journal entry' });
+  }
+});
 
-    const validCategories = [
-      'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
-    ];
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({ error: 'Invalid category' });
-    }
-
-    if (!location) {
-      return res.status(400).json({ error: 'Location is required' });
-    }
-
-    let weatherData;
-    try {
-      const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${ lat }&lon=${ lng }&appid=${ apiKey }`
-      );
-      weatherData = response.data;
-    } catch (err) {
-      console.error('Weather API error:', err.message);
-      weatherData = journals[entryIndex].weather;
-    }
-
-    const updatedEntry = {
-      ...journals[entryIndex],
-      title,
-      content,
-      category,
-      geolocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
-      location,
-      weather: weatherData,
-      isPublic: isPublic === 'true',
-      date,
-      photos: req.files.photos ? req.files.photos.map(f => f.path) : journals[entryIndex].photos,
-      videos: req.files.videos ? req.files.videos.map(f => f.path) : journals[entryIndex].videos,
-      audio: req.files.audio ? req.files.audio[0]?.path : journals[entryIndex].audio,
-    };
-
-    journals[entryIndex] = updatedEntry;
-    saveData();
-    res.json(updatedEntry);
-  });
-
-  router.get('/', authenticate, (req, res) => {
-    const userJournals = journals.filter(j => j.userId === req.user.id).map(j => ({
-      id: j.id,
-      title: j.title,
-      content: j.content,
-      category: j.category,
-      location: j.location,
-      geolocation: j.geolocation,
-      weather: j.weather,
-      isPublic: j.isPublic,
-      timestamp: j.timestamp,
-      date: j.date,
-      photos: j.photos,
-      videos: j.videos,
-      audio: j.audio,
-    }));
-    res.json(userJournals);
-  });
-
-  router.get('/community', (req, res) => {
-    const publicJournals = journals
-      .filter(j => j.isPublic)
-      .map(j => ({
-        id: j.id,
-        title: j.title,
-        content: j.content,
-        category: j.category,
-        location: j.location,
-        geolocation: j.geolocation,
-        weather: j.weather,
-        username: j.username,
-        timestamp: j.timestamp,
-        date: j.date,
-        photos: j.photos,
-        videos: j.videos,
-        audio: j.audio,
-      }));
-    res.json(publicJournals);
-  });
-
-  router.get('/:id', (req, res) => {
-    const entry = journals.find(j => j.id === parseInt(req.params.id));
-    if (!entry) return res.status(404).json({ error: 'Entry not found' });
-    res.json({
-      id: entry.id,
-      title: entry.title,
-      content: entry.content,
-      category: entry.category,
-      location: entry.location,
-      geolocation: entry.geolocation,
-      weather: entry.weather,
-      username: entry.username,
-      isPublic: entry.isPublic,
-      timestamp: entry.timestamp,
-      date: entry.date,
-      photos: entry.photos,
-      videos: entry.videos,
-      audio: entry.audio,
-    });
-  });
-
-  return router;
-};
+module.exports = router;
