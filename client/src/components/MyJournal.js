@@ -103,7 +103,7 @@ const MyJournal = ({ token, handleLogout }) => {
     setLocationData({
       lat: suggestion.lat,
       lng: suggestion.lon,
-      address: selectedLocation
+      address: selectedLocation,
     });
     setLocationSuggestions([]);
   };
@@ -143,7 +143,7 @@ const MyJournal = ({ token, handleLogout }) => {
     setLocationData({
       lat: entry.geolocation?.lat?.toString() || '',
       lng: entry.geolocation?.lng?.toString() || '',
-      address: entry.location || ''
+      address: entry.location || '',
     });
     setIsPublic(entry.isPublic);
     setDate(entry.date);
@@ -172,24 +172,36 @@ const MyJournal = ({ token, handleLogout }) => {
       formData.append('lng', parseFloat(locationData.lng));
     }
 
+    // Handle photos
     if (photos.length > 0) {
       photos.forEach((photo, index) => {
         if (photo instanceof File) {
-          formData.append(`photos[${index}]`, photo);
+          formData.append('photos', photo);
+          console.log(`Appending photo ${index}:`, photo.name, photo.size);
         }
       });
     }
 
+    // Handle videos
     if (videos.length > 0) {
       videos.forEach((video, index) => {
         if (video instanceof File) {
-          formData.append(`videos[${index}]`, video);
+          formData.append('videos', video);
+          console.log(`Appending video ${index}:`, video.name, video.size);
         }
       });
     }
 
+    // Handle audio
     if (audio && (audio instanceof Blob || audio instanceof File)) {
       formData.append('audio', audio);
+      console.log('Appending audio:', audio.name || 'recorded audio', audio.size);
+    }
+
+    // Log FormData contents
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value instanceof File ? `${value.name} (${value.size} bytes)` : value);
     }
 
     try {
@@ -200,6 +212,11 @@ const MyJournal = ({ token, handleLogout }) => {
           'Content-Type': 'multipart/form-data',
         },
       };
+
+      console.log('Sending request to:', editingEntry ?
+        `http://localhost:5000/api/journal/${editingEntry._id}` :
+        'http://localhost:5000/api/journal');
+      console.log('Request config:', config);
 
       if (editingEntry) {
         res = await axios.put(
@@ -216,6 +233,8 @@ const MyJournal = ({ token, handleLogout }) => {
         setEntries([...entries, res.data]);
       }
 
+      console.log('Response:', res.data);
+
       setTitle('');
       setContent('');
       setIsPublic(false);
@@ -226,7 +245,14 @@ const MyJournal = ({ token, handleLogout }) => {
       setLocation('');
       setLocationData({ lat: '', lng: '', address: '' });
     } catch (err) {
-      console.error('Error submitting entry:', err.response ? err.response.data : err.message);
+      console.error('Submission error:', {
+        message: err.message,
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        } : 'No response received'
+      });
       alert(`Failed to ${editingEntry ? 'update' : 'add'} entry: ${err.response?.data?.error || err.message}`);
     }
   };
@@ -245,14 +271,14 @@ const MyJournal = ({ token, handleLogout }) => {
             <input
               type="text"
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={(e) => setDate(e.target.value)}
               placeholder="Date (e.g., 5 April 2025)"
               required
             />
             <input
               type="text"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Title"
               required
             />
@@ -298,8 +324,8 @@ const MyJournal = ({ token, handleLogout }) => {
                 </ul>
               )}
             </div>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              {categories.map(cat => (
+            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+              {categories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -307,7 +333,7 @@ const MyJournal = ({ token, handleLogout }) => {
               <input
                 type="checkbox"
                 checked={isPublic}
-                onChange={e => setIsPublic(e.target.checked)}
+                onChange={(e) => setIsPublic(e.target.checked)}
               />
               Make this entry public
             </label>

@@ -4,6 +4,15 @@ import { useHistory } from 'react-router-dom';
 const SideNav = ({ entries, handleLogout, handleCardClick }) => {
   const history = useHistory();
 
+  const onLogout = () => {
+    if (typeof handleLogout === 'function') { // Add a safety check
+      handleLogout(); // Call the parent's logout function to clear token
+    } else {
+      console.error('handleLogout is not a function');
+    }
+    history.push('/login'); // Redirect to login page
+  };
+
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
@@ -13,7 +22,10 @@ const SideNav = ({ entries, handleLogout, handleCardClick }) => {
         <button className="sidebar-btn" onClick={() => history.push('/')}>
           Community Feed
         </button>
-        <button className="logout-btn" onClick={handleLogout}>
+        <button className="sidebar-btn" onClick={() => history.push('/account')}>
+          Account
+        </button>
+        <button className="logout-btn" onClick={onLogout}>
           Log Out
         </button>
       </nav>

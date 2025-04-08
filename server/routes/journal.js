@@ -4,9 +4,16 @@ const axios = require('axios');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const Journal = require('../models/Journal');
 const User = require('../models/User');
 require('dotenv').config();
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -16,23 +23,30 @@ const storage = multer.diskStorage({
     cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });
+
+// Initialize multer without fields (we'll specify fields in the routes)
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'audio/mpeg'];
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Invalid file type'));
+    else cb(new Error(`Invalid file type: ${file.mimetype}. Allowed: image/jpeg, image/png, video/mp4, audio/mpeg`));
   },
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
+
+// Define the fields for file uploads
+const uploadFields = [
+  { name: 'photos', maxCount: 5 },
+  { name: 'videos', maxCount: 2 },
+  { name: 'audio', maxCount: 1 },
+];
 
 // Helper function to parse "Town, State" from full address
 const parseTownState = (address) => {
   if (!address) return 'Unknown';
   const parts = address.split(', ').map(part => part.trim());
-  if (parts.length >= 3) {
-    return `${parts[1]}, ${parts[2]}`;
-  }
+  if (parts.length >= 3) return `${parts[1]}, ${parts[2]}`;
   return address;
 };
 
@@ -54,44 +68,42 @@ const authenticate = (req, res, next) => {
 };
 
 // POST: Create a new journal entry
-router.post('/', authenticate, upload.fields([
-  { name: 'photos', maxCount: 5 },
-  { name: 'videos', maxCount: 2 },
-  { name: 'audio', maxCount: 1 },
-]), async (req, res) => {
+router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, lat, lng, location, isPublic, date } = req.body;
 
   console.log('POST /api/journal - Request body:', req.body);
   console.log('POST /api/journal - Uploaded files:', req.files);
 
-  const validCategories = [
-    'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
-  ];
+  const validCategories = ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'];
 
-  if (!title || !content || !location) {
-    return res.status(400).json({ error: 'Title, content, and location are required' });
+  if (!title || !content || !location || !date) {
+    console.log('Missing required fields:', { title, content, location, date });
+    return res.status(400).json({ error: 'Title, content, location, and date are required' });
   }
   if (!validCategories.includes(category)) {
+    console.log('Invalid category:', category);
     return res.status(400).json({ error: 'Invalid category' });
   }
-  if (!lat || !lng) {
-    return res.status(400).json({ error: 'Latitude and longitude are required' });
-  }
 
-  let weatherData;
-  try {
-    const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
-    const response = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
-    );
-    weatherData = response.data;
-  } catch (err) {
-    console.error('Weather API error:', err.message);
-    weatherData = { main: { temp: 'N/A' } };
+  let weatherData = { main: { temp: 'N/A' } };
+  if (lat && lng) {
+    try {
+      const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
+      const response = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
+      );
+      weatherData = response.data;
+      console.log('Weather data fetched:', weatherData);
+    } catch (err) {
+      console.error('Weather API error:', err.message);
+    }
   }
 
   const user = await User.findById(req.user.id);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) {
+    console.log('User not found:', req.user.id);
+    return res.status(404).json({ error: 'User not found' });
+  }
 
   const parsedLocation = parseTownState(location);
 
@@ -100,24 +112,30 @@ router.post('/', authenticate, upload.fields([
     title,
     content,
     category,
-    geolocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
+    geolocation: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined,
     location: parsedLocation,
     weather: weatherData,
     isPublic: isPublic === 'true',
     timestamp: new Date(),
     username: user.username,
-    photos: req.files.photos ? req.files.photos.map(f => f.path) : [],
-    videos: req.files.videos ? req.files.videos.map(f => f.path) : [],
-    audio: req.files.audio ? req.files.audio[0]?.path : null,
+    photos: req.files?.photos?.map(f => f.path) || [],
+    videos: req.files?.videos?.map(f => f.path) || [],
+    audio: req.files?.audio?.[0]?.path || null,
     date,
   });
 
   try {
+    console.log('Saving journal entry:', entry);
     await entry.save();
+    console.log('Journal entry saved:', entry._id);
     res.status(201).json(entry);
   } catch (err) {
-    console.error('Error saving journal:', err);
-    res.status(500).json({ error: 'Failed to save journal entry' });
+    console.error('Error saving journal:', {
+      message: err.message,
+      stack: err.stack,
+      entryData: entry,
+    });
+    res.status(500).json({ error: 'Failed to save journal entry', details: err.message });
   }
 });
 
@@ -159,16 +177,10 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // PUT: Update a journal entry
-router.put('/:id', authenticate, upload.fields([
-  { name: 'photos', maxCount: 5 },
-  { name: 'videos', maxCount: 2 },
-  { name: 'audio', maxCount: 1 },
-]), async (req, res) => {
+router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, location, isPublic, date, lat, lng } = req.body;
 
-  const validCategories = [
-    'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
-  ];
+  const validCategories = ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'];
 
   try {
     const existingEntry = await Journal.findById(req.params.id);
@@ -191,10 +203,7 @@ router.put('/:id', authenticate, upload.fields([
     if (date) updateData.date = date;
 
     if (lat && lng) {
-      updateData.geolocation = {
-        lat: parseFloat(lat),
-        lng: parseFloat(lng),
-      };
+      updateData.geolocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
       try {
         const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
         const response = await axios.get(
@@ -207,31 +216,19 @@ router.put('/:id', authenticate, upload.fields([
       }
     }
 
-    if (req.files.photos) {
-      updateData.photos = req.files.photos.map(f => f.path);
-    } else {
-      updateData.photos = existingEntry.photos;
-    }
-    if (req.files.videos) {
-      updateData.videos = req.files.videos.map(f => f.path);
-    } else {
-      updateData.videos = existingEntry.videos;
-    }
-    if (req.files.audio) {
-      updateData.audio = req.files.audio[0].path;
-    } else {
-      updateData.audio = existingEntry.audio;
-    }
+    updateData.photos = req.files?.photos?.map(f => f.path) || existingEntry.photos;
+    updateData.videos = req.files?.videos?.map(f => f.path) || existingEntry.videos;
+    updateData.audio = req.files?.audio?.[0]?.path || existingEntry.audio;
 
     const updatedEntry = await Journal.findByIdAndUpdate(
       req.params.id,
-      updateData,
-      { new: true, runValidators: true }
+      { $set: updateData }, // Use $set to update only specified fields
+      { new: true, runValidators: true } // Type-safe options
     );
     res.json(updatedEntry);
   } catch (err) {
     console.error('Error updating journal:', err);
-    res.status(500).json({ error: 'Failed to update journal entry' });
+    res.status(500).json({ error: 'Failed to update journal entry', details: err.message });
   }
 });
 
@@ -253,7 +250,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    await Journal.findByIdAndDelete(req.params.id); // Replaced entry.remove()
+    await Journal.findByIdAndDelete(req.params.id);
     console.log(`Entry ${req.params.id} deleted successfully`);
     res.status(200).json({ message: 'Entry deleted successfully' });
   } catch (err) {

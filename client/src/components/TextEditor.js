@@ -4,7 +4,7 @@ import { FaImage, FaSmile, FaMicrophone, FaPaintBrush, FaBold, FaItalic, FaUnder
         FaQuoteRight, FaClock, FaLink } from 'react-icons/fa';
 import { BiLeftIndent, BiRightIndent } from 'react-icons/bi';
 
-const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos, audio, setAudio }) => {
+const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos, audio, setAudio, onSave }) => {
   const [font, setFont] = useState('Roboto');
   const [fontSize, setFontSize] = useState('16');
   const [fontColor, setFontColor] = useState('#000000');
@@ -25,45 +25,93 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
   const fontColorInputRef = useRef(null);
   const highlightColorInputRef = useRef(null);
   const editorRef = useRef(null);
+  const resizeRef = useRef(null);
 
-  const emojiList = [
-    '😊', '😂', '😍', '😢', '😡', '👍', '👎', '❤️', '🌟', '🎉',
-    '🙌', '🤓', '😎', '🥳', '😴', '🍕', '🌈', '☀️', '🌙', '⭐'
-  ];
-
-  const fontList = [
-    'Roboto', 'Arial', 'Times New Roman', 'Courier New', 'Georgia',
-    'Verdana', 'Helvetica', 'Comic Sans MS', 'Impact', 'Trebuchet MS'
-  ];
-
+  const emojiList = ['😊', '😂', '😍', '😢', '😡', '👍', '👎', '❤️', '🌟', '🎉',
+    '🙌', '🤓', '😎', '🥳', '😴', '🍕', '🌈', '☀️', '🌙', '⭐'];
+  const fontList = ['Roboto', 'Arial', 'Times New Roman', 'Courier New', 'Georgia',
+    'Verdana', 'Helvetica', 'Comic Sans MS', 'Impact', 'Trebuchet MS'];
   const fontSizes = ['12', '14', '16', '18', '20', '24', '28', '32'];
 
   useEffect(() => {
-    // Sync editor content with prop
     if (editorRef.current && content !== editorRef.current.innerHTML) {
       editorRef.current.innerHTML = content;
+      attachResizeHandlers();
     }
+  }, [content]);
 
-    // Add resize event listeners to all resizers
-    const resizers = editorRef.current.querySelectorAll('.resizer');
-    resizers.forEach(resizer => {
-      resizer.addEventListener('mousedown', initResize);
+  const attachResizeHandlers = () => {
+    const containers = editorRef.current.querySelectorAll('.resizable-image-container');
+    containers.forEach(container => {
+      const handles = container.querySelectorAll('.resize-handle');
+      handles.forEach(handle => {
+        handle.removeEventListener('mousedown', startResize); // Prevent duplicate listeners
+        handle.addEventListener('mousedown', startResize);
+      });
+    });
+  };
+
+  const initResize = (e, img) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeRef.current = {
+      img,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: img.offsetWidth,
+      startHeight: img.offsetHeight
+    };
+
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', stopResize);
+  };
+
+  const handleResize = (e) => {
+    if (!resizeRef.current) return;
+
+    const { img, startX, startY, startWidth, startHeight } = resizeRef.current;
+    const newWidth = Math.max(50, startWidth + (e.clientX - startX));
+    const newHeight = Math.max(50, startHeight + (e.clientY - startY));
+
+    img.style.width = `${newWidth}px`;
+    img.style.height = `${newHeight}px`;
+  };
+
+  const stopResize = () => {
+    if (resizeRef.current) {
+      setContent(editorRef.current.innerHTML); // Keep raw content with handles
+      resizeRef.current = null;
+    }
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', stopResize);
+  };
+
+  const cleanContent = useCallback((htmlContent) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+
+    const imageContainers = doc.querySelectorAll('.resizable-image-container');
+    imageContainers.forEach(container => {
+      const img = container.querySelector('img');
+      if (img) {
+        const newImg = doc.createElement('img');
+        newImg.src = img.src;
+        newImg.style.width = img.style.width;
+        newImg.style.height = img.style.height;
+        newImg.style.display = 'block';
+        newImg.style.maxWidth = '100%';
+        newImg.style.margin = '10px';
+
+        container.parentNode.replaceChild(newImg, container);
+      }
     });
 
-    return () => {
-      // Cleanup event listeners
-      resizers.forEach(resizer => {
-        resizer.removeEventListener('mousedown', initResize);
-      });
-    };
-  }, [content]);
+    return doc.body.innerHTML;
+  }, []);
 
   const saveCursorPosition = useCallback(() => {
     const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      return selection.getRangeAt(0).cloneRange();
-    }
-    return null;
+    return selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
   }, []);
 
   const restoreCursorPosition = useCallback((range) => {
@@ -79,7 +127,7 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
     document.execCommand(command, false, value);
     restoreCursorPosition(cursorPosition);
     updateToolbarFromSelection();
-    setContent(editorRef.current.innerHTML);
+    setContent(editorRef.current.innerHTML); // Keep raw content with handles
   }, [setContent]);
 
   const applyStyleToSelection = useCallback((styleProperty, value) => {
@@ -99,7 +147,7 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
 
     restoreCursorPosition(cursorPosition);
     updateToolbarFromSelection();
-    setContent(editorRef.current.innerHTML);
+    setContent(editorRef.current.innerHTML); // Keep raw content with handles
   }, [setContent]);
 
   const handleFontChange = (newFont) => {
@@ -190,42 +238,13 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
     return `#${r}${g}${b}`;
   };
 
-  const initResize = (e) => {
-    e.preventDefault();
-    const resizer = e.target;
-    const imgContainer = resizer.parentElement;
-    const img = imgContainer.querySelector('img');
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = parseInt(document.defaultView.getComputedStyle(imgContainer).width, 10);
-    const aspectRatio = img.naturalWidth / img.naturalHeight; // Preserve aspect ratio
-
-    const doDrag = (e) => {
-      const newWidth = Math.max(50, startWidth + (e.clientX - startX)); // Minimum width of 50px
-      const newHeight = newWidth / aspectRatio; // Maintain aspect ratio
-      imgContainer.style.width = `${newWidth}px`;
-      imgContainer.style.height = `${newHeight}px`;
-      img.style.width = '100%';
-      img.style.height = '100%';
-    };
-
-    const stopDrag = () => {
-      document.documentElement.removeEventListener('mousemove', doDrag, false);
-      document.documentElement.removeEventListener('mouseup', stopDrag, false);
-      setContent(editorRef.current.innerHTML); // Update content after resizing
-    };
-
-    document.documentElement.addEventListener('mousemove', doDrag, false);
-    document.documentElement.addEventListener('mouseup', stopDrag, false);
-  };
-
   const addTimestamp = () => {
     const cursorPosition = saveCursorPosition();
     const timestamp = new Date().toLocaleString();
     document.execCommand('insertHTML', false, `<p>[${timestamp}] </p>`);
     restoreCursorPosition(cursorPosition);
     updateToolbarFromSelection();
-    setContent(editorRef.current.innerHTML);
+    setContent(editorRef.current.innerHTML); // Keep raw content with handles
   };
 
   const addLink = () => {
@@ -235,7 +254,7 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
       document.execCommand('createLink', false, url);
       restoreCursorPosition(cursorPosition);
       updateToolbarFromSelection();
-      setContent(editorRef.current.innerHTML);
+      setContent(editorRef.current.innerHTML); // Keep raw content with handles
     }
   };
 
@@ -245,7 +264,7 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
     setShowEmojiPicker(false);
     restoreCursorPosition(cursorPosition);
     updateToolbarFromSelection();
-    setContent(editorRef.current.innerHTML);
+    setContent(editorRef.current.innerHTML); // Keep raw content with handles
   };
 
   const startRecording = async () => {
@@ -281,52 +300,147 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
       reader.onload = (event) => {
         const cursorPosition = saveCursorPosition();
 
-        // Create resizable image container
-        const imgContainer = document.createElement('div');
-        imgContainer.className = 'resizable-image-container';
-        imgContainer.style.display = 'inline-block';
-        imgContainer.style.position = 'relative';
-        imgContainer.style.width = '300px'; // Default width
-        imgContainer.style.height = 'auto';
-        imgContainer.style.margin = '10px';
-        imgContainer.setAttribute('contenteditable', 'false');
+        const imageContainer = document.createElement('div');
+        imageContainer.style.position = 'relative';
+        imageContainer.style.display = 'inline-block';
+        imageContainer.style.margin = '10px';
+        imageContainer.className = 'resizable-image-container';
 
         const img = document.createElement('img');
         img.src = event.target.result;
-        img.style.width = '100%';
+        img.style.width = '300px';
         img.style.height = 'auto';
-        img.setAttribute('contenteditable', 'false');
+        img.style.display = 'block';
+        img.style.maxWidth = '100%';
 
-        // Add resize handle
-        const resizer = document.createElement('div');
-        resizer.className = 'resizer';
-        resizer.style.width = '10px';
-        resizer.style.height = '10px';
-        resizer.style.background = 'gray';
-        resizer.style.position = 'absolute';
-        resizer.style.right = '0';
-        resizer.style.bottom = '0';
-        resizer.style.cursor = 'se-resize';
+        const resizeHandles = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+        resizeHandles.forEach(position => {
+          const handle = document.createElement('div');
+          handle.className = `resize-handle ${position}`;
+          handle.style.position = 'absolute';
+          handle.style.width = '10px';
+          handle.style.height = '10px';
+          handle.style.background = '#fff';
+          handle.style.border = '1px solid #000';
+          handle.style.borderRadius = '50%';
+          handle.style.cursor = `${position.includes('top') ? 'n' : 's'}${position.includes('left') ? 'w' : 'e'}-resize`;
 
-        imgContainer.appendChild(img);
-        imgContainer.appendChild(resizer);
+          switch(position) {
+            case 'top-left':
+              handle.style.top = '-5px';
+              handle.style.left = '-5px';
+              break;
+            case 'top-right':
+              handle.style.top = '-5px';
+              handle.style.right = '-5px';
+              break;
+            case 'bottom-left':
+              handle.style.bottom = '-5px';
+              handle.style.left = '-5px';
+              break;
+            case 'bottom-right':
+              handle.style.bottom = '-5px';
+              handle.style.right = '-5px';
+              break;
+          }
 
-        // Insert into editor
+          imageContainer.appendChild(handle);
+        });
+
+        imageContainer.appendChild(img);
+
         const selection = window.getSelection();
-        const range = cursorPosition || document.createRange();
-        range.insertNode(imgContainer);
-        range.setStartAfter(imgContainer);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        if (cursorPosition && editorRef.current.contains(cursorPosition.startContainer)) {
+          const range = document.createRange();
+          range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+          range.insertNode(imageContainer);
+          range.setStartAfter(imageContainer);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else {
+          editorRef.current.insertBefore(imageContainer, editorRef.current.firstChild);
+          selection.removeAllRanges();
+          const range = document.createRange();
+          range.setStartAfter(imageContainer);
+          selection.addRange(range);
+        }
 
-        setContent(editorRef.current.innerHTML);
-        setPhotos(prev => [...prev, file]);
+        const handleElements = imageContainer.querySelectorAll('.resize-handle');
+        handleElements.forEach(handle => {
+          handle.addEventListener('mousedown', startResize);
+        });
+
+        setContent(editorRef.current.innerHTML); // Keep raw content with handles
       };
       reader.readAsDataURL(file);
+      setPhotos(prev => [...prev, file]);
     });
   };
 
+  const startResize = (e) => {
+    e.preventDefault();
+    const handle = e.target;
+    const container = handle.parentElement;
+    const img = container.querySelector('img');
+
+    const startX = e.pageX;
+    const startY = e.pageY;
+    const startWidth = parseInt(window.getComputedStyle(img).width);
+    const startHeight = parseInt(window.getComputedStyle(img).height);
+    const position = handle.className.split(' ')[1];
+
+    const doResize = (e) => {
+      const diffX = e.pageX - startX;
+      const diffY = e.pageY - startY;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (position.includes('right')) {
+        newWidth = startWidth + diffX;
+      } else if (position.includes('left')) {
+        newWidth = startWidth - diffX;
+      }
+
+      if (position.includes('bottom')) {
+        newHeight = startHeight + diffY;
+      } else if (position.includes('top')) {
+        newHeight = startHeight - diffY;
+      }
+
+      const aspectRatio = startWidth / startHeight;
+      if (position.includes('left') || position.includes('right')) {
+        newHeight = newWidth / aspectRatio;
+      } else {
+        newWidth = newHeight * aspectRatio;
+      }
+
+      newWidth = Math.max(newWidth, 50);
+      newHeight = Math.max(newHeight, 50);
+
+      img.style.width = `${newWidth}px`;
+      img.style.height = `${newHeight}px`;
+    };
+
+    const stopResizeLocal = () => {
+      document.removeEventListener('mousemove', doResize);
+      document.removeEventListener('mouseup', stopResizeLocal);
+      setContent(editorRef.current.innerHTML); // Keep raw content with handles
+    };
+
+    document.addEventListener('mousemove', doResize);
+    document.addEventListener('mouseup', stopResizeLocal);
+  };
+
+  const handleSave = useCallback(() => {
+    if (onSave) {
+      const cleanedContent = cleanContent(editorRef.current.innerHTML);
+      onSave(cleanedContent);
+    }
+  }, [onSave, cleanContent]);
+
   const handleBlur = useCallback(() => {
+    // Don't clean content here, just update with raw content
     setContent(editorRef.current.innerHTML);
   }, [setContent]);
 

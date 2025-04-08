@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useHistory } from 'react-router-dom';
-import SideNav from './SideNav'; // Adjust the import path as needed
+import SideNav from './SideNav';
 
 const EntryDetail = ({ token }) => {
   const [entry, setEntry] = useState(null);
@@ -48,8 +48,66 @@ const EntryDetail = ({ token }) => {
     history.push(`/entry/${entryId}`);
   };
 
+  // Function to add resize handles to existing images for editing
+  const prepareContentForEditing = (htmlContent) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+
+    const images = doc.querySelectorAll('img');
+    images.forEach(img => {
+      // Skip if already in a resizable container
+      if (img.parentElement.className === 'resizable-image-container') return;
+
+      const container = doc.createElement('div');
+      container.style.position = 'relative';
+      container.style.display = 'inline-block';
+      container.style.margin = '10px';
+      container.className = 'resizable-image-container';
+
+      const resizeHandles = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+      resizeHandles.forEach(position => {
+        const handle = doc.createElement('div');
+        handle.className = `resize-handle ${position}`;
+        handle.style.position = 'absolute';
+        handle.style.width = '10px';
+        handle.style.height = '10px';
+        handle.style.background = '#fff';
+        handle.style.border = '1px solid #000';
+        handle.style.borderRadius = '50%';
+        handle.style.cursor = `${position.includes('top') ? 'n' : 's'}${position.includes('left') ? 'w' : 'e'}-resize`;
+
+        switch(position) {
+          case 'top-left':
+            handle.style.top = '-5px';
+            handle.style.left = '-5px';
+            break;
+          case 'top-right':
+            handle.style.top = '-5px';
+            handle.style.right = '-5px';
+            break;
+          case 'bottom-left':
+            handle.style.bottom = '-5px';
+            handle.style.left = '-5px';
+            break;
+          case 'bottom-right':
+            handle.style.bottom = '-5px';
+            handle.style.right = '-5px';
+            break;
+        }
+        container.appendChild(handle);
+      });
+
+      img.parentNode.insertBefore(container, img);
+      container.appendChild(img);
+    });
+
+    return doc.body.innerHTML;
+  };
+
   const handleEdit = () => {
-    history.push('/journal', { entryToEdit: entry });
+    // Prepare content with resize handles before passing to editor
+    const editableContent = prepareContentForEditing(entry.content);
+    history.push('/journal', { entryToEdit: { ...entry, content: editableContent } });
   };
 
   const handleDelete = async () => {

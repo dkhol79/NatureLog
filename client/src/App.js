@@ -1,45 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Switch, Link, Redirect } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 import Login from './components/Login';
 import MyJournal from './components/MyJournal';
 import CommunityFeed from './components/CommunityFeed';
 import EntryDetail from './components/EntryDetail';
+import Account from './components/Account';
+import SideNav from './components/SideNav';
 
 const App = () => {
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if (storedToken !== token) setToken(storedToken);
+    if (storedToken && storedToken !== token) {
+      setToken(storedToken);
+    } else if (!storedToken && token) {
+      setToken(null);
+    }
   }, [token]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setToken('');
-    // Redirect to login after logout
-    window.location.href = '/login';
+    setToken(null);
   };
 
   return (
     <Router>
-      <div className="app">
-        <header>
-          <h1>NatureLog</h1>
-          <nav>
-            {token ? (
-              <>
-                <Link to="/journal">My Journal</Link>
-                <Link to="/">Community Feed</Link>
-                <button onClick={handleLogout} className="logout-btn">Logout</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">Log In</Link>
-                <Link to="/register">Register</Link>
-              </>
-            )}
-          </nav>
-        </header>
+      {/* Force rerender when token changes */}
+      <div className="app" key={token ? 'logged-in' : 'logged-out'}>
+        {token && (
+          <SideNav
+            handleLogout={handleLogout}
+            entries={[]}
+            handleCardClick={() => {}}
+          />
+        )}
         <main>
           <Switch>
             <Route path="/login">
@@ -49,13 +44,16 @@ const App = () => {
               <Login setToken={setToken} isRegisterDefault={true} />
             </Route>
             <Route path="/journal">
-              {token ? <MyJournal token={token} handleLogout={handleLogout} /> : <Redirect to="/login" />}
+              {token ? <MyJournal token={token} /> : <Redirect to="/login" />}
             </Route>
             <Route path="/entry/:id">
               {token ? <EntryDetail token={token} /> : <Redirect to="/login" />}
             </Route>
+            <Route path="/account">
+              {token ? <Account token={token} /> : <Redirect to="/login" />}
+            </Route>
             <Route path="/">
-              {token ? <CommunityFeed /> : <Redirect to="/login" />}
+              {token ? <CommunityFeed token={token} /> : <Redirect to="/login" />}
             </Route>
           </Switch>
         </main>

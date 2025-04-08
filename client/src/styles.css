@@ -198,12 +198,13 @@ body {
   flex-direction: column;
 }
 
+/* Editor Textarea */
 .editor-textarea {
   width: 100%;
   min-height: 200px;
   padding: 15px;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 0 0 6px 6px;
   font-size: 1rem;
   transition: border-color 0.3s;
   outline: none;
@@ -225,21 +226,15 @@ body {
   border-color: #4CAF50;
 }
 
-/* Resizable Image Styles */
-.resizable-image-container {
-  position: relative;
-  display: inline-block;
-  user-select: none;
-  margin: 10px;
-  max-width: 100%; /* Prevent overflow */
-}
-
-.resizable-image-container img {
+/* Image Styles */
+.editor-image {
   max-width: 100%;
   height: auto;
-  display: block;
-  border: 1px solid #ddd; /* Slight border for visibility */
+  display: inline-block;
+  margin: 10px;
+  border: 1px solid #ddd;
   border-radius: 4px;
+  position: relative;
 }
 
 .resizer {
@@ -267,13 +262,13 @@ body {
   gap: 10px;
   padding: 10px;
   background: #f5f5f5;
-  border-radius: 4px 4px 0 0; /* Rounded top corners only */
-  margin-bottom: 0; /* Remove margin-bottom */
+  border-radius: 4px 4px 0 0;
+  margin-bottom: 0;
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 1;
-  order: -1; /* Ensure toolbar stays above editor-textarea */
+  order: -1;
   border-bottom: 1px solid #ddd;
 }
 
@@ -703,6 +698,287 @@ body {
   color: #4CAF50;
 }
 
+/* Account Page Styles */
+.account-page {
+  flex: 1;
+  padding: 20px 20px 20px 340px;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+}
+
+.account-page h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #4CAF50;
+  text-align: center;
+}
+
+.account-info,
+.password-change,
+.preferences,
+.favorite-locations,
+.danger-zone {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.account-page h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.profile-pic {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.profile-pic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.category-tabs, .location-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.category-tab, .location-tab {
+  background-color: #f0f0f0;
+  padding: 5px 10px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  margin-left: 5px;
+}
+
+.add-category, .add-location {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-category select, .add-location input {
+  flex: 1;
+  padding: 5px;
+}
+
+.account-info div,
+.password-change form,
+.preferences div {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.account-info label,
+.password-change label {
+  width: 150px;
+  font-weight: 500;
+  color: #555;
+}
+
+.account-info input,
+.password-change input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  width: 250px;
+  transition: border-color 0.3s;
+}
+
+.account-info input:disabled {
+  background-color: #f5f5f5;
+  color: #777;
+}
+
+.account-info input:focus,
+.password-change input:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+.account-info button {
+  padding: 10px 20px;
+  margin-right: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.account-info button:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.account-info button:nth-child(2) { /* Cancel button */
+  background-color: #888;
+}
+
+.account-info button:nth-child(2):hover {
+  background-color: #666;
+}
+
+.password-change button {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.password-change button:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.preferences input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.preferences label {
+  color: #555;
+  font-size: 1rem;
+}
+
+.favorite-locations .map-placeholder {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 6px;
+  min-height: 200px;
+}
+
+.favorite-locations p {
+  color: #777;
+  font-style: italic;
+}
+
+.danger-zone {
+  border: 2px solid #ff4444;
+}
+
+.delete-account-btn {
+  padding: 10px 20px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.delete-account-btn:hover {
+  background-color: #cc0000;
+  transform: translateY(-2px);
+}
+
+/* Login Page Specific Styles */
+.login {
+    max-width: 400px;
+    margin: 5rem auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login h2 {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #4CAF50;
+    text-align: center;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.login form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: 'Roboto', Arial, sans-serif;
+    transition: border-color 0.3s;
+}
+
+.login input:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+.login input::placeholder {
+    color: #999;
+}
+
+.login button[type="submit"] {
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.login button[type="submit"]:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.login button:not([type="submit"]) {
+    padding: 10px;
+    background-color: #888;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-top: 15px;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.login button:not([type="submit"]):hover {
+    background-color: #666;
+    transform: translateY(-2px);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
@@ -711,11 +987,9 @@ body {
     height: auto;
   }
 
-  .main-content {
-    padding: 20px;
-  }
-
-  .community-feed {
+  .main-content,
+  .community-feed,
+  .account-page {
     padding: 20px;
   }
 
@@ -760,6 +1034,41 @@ body {
   .back-btn,
   .edit-btn {
     width: 100%;
+  }
+
+  .account-info,
+  .password-change,
+  .preferences,
+  .favorite-locations,
+  .danger-zone {
+    padding: 20px;
+  }
+
+  .account-info div,
+  .password-change form {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-info label,
+  .password-change label {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .account-info input,
+  .password-change input {
+    width: 100%;
+  }
+
+  .login {
+    max-width: 100%;
+    margin: 2rem 20px;
+    padding: 20px;
+  }
+
+  .login h2 {
+    font-size: 1.5rem;
   }
 }
 
@@ -824,5 +1133,33 @@ body {
 
   .entry-meta {
     font-size: 0.9rem;
+  }
+
+  .account-page h2 {
+    font-size: 1.5rem;
+  }
+
+  .account-page h3 {
+    font-size: 1.2rem;
+  }
+
+  .password-change button,
+  .delete-account-btn {
+    width: 100%;
+  }
+
+  .login {
+    margin: 1rem 15px;
+    padding: 15px;
+  }
+
+  .login button[type="submit"] {
+    font-size: 1rem;
+    padding: 10px;
+  }
+
+  .login button:not([type="submit"]) {
+    font-size: 0.9rem;
+    padding: 8px;
   }
 }

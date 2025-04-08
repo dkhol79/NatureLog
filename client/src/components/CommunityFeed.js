@@ -6,25 +6,46 @@ import SideNav from './SideNav'; // Adjust the import path as needed
 const CommunityFeed = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [sidebarEntries, setSidebarEntries] = useState([]);
+  const [loading, setLoading] = useState(true); // Added loading state for better UX
   const history = useHistory();
 
   useEffect(() => {
-    // Fetch community feed entries
-    axios
-      .get('http://localhost:5000/api/journal/community')
-      .then(res => setEntries(res.data))
-      .catch(err => console.error('Error fetching community feed:', err));
-
-    // Fetch user's journal entries for sidebar (assuming token is available)
-    if (token) {
-      axios
-        .get('http://localhost:5000/api/journal', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then(res => setSidebarEntries(res.data))
-        .catch(err => console.error('Error fetching sidebar entries:', err));
+    // Check token and redirect if missing
+    if (!token) {
+      history.push('/login');
+      return;
     }
-  }, [token]);
+
+    const fetchCommunityEntries = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/journal/community', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setEntries(res.data);
+      } catch (err) {
+        console.error('Error fetching community feed:', err.response?.data || err.message);
+      }
+    };
+
+    const fetchSidebarEntries = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/journal', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSidebarEntries(res.data);
+      } catch (err) {
+        console.error('Error fetching sidebar entries:', err.response?.data || err.message);
+      }
+    };
+
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchCommunityEntries(), fetchSidebarEntries()]);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [token, history]);
 
   const handleCardClick = (id) => {
     history.push(`/entry/${id}`);
@@ -36,8 +57,17 @@ const CommunityFeed = ({ token }) => {
   };
 
   const handleSidebarCardClick = (entryId) => {
+    // Ensure token exists before navigating
+    if (!token) {
+      console.error('No token found, redirecting to login');
+      history.push('/login');
+      return;
+    }
+    console.log('Navigating to entry:', entryId); // Debug log
     history.push(`/entry/${entryId}`);
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="app-container">
@@ -55,14 +85,19 @@ const CommunityFeed = ({ token }) => {
             ) : (
               entries.map(entry => (
                 <div
-                  key={entry.id}
+                  key={entry._id}
                   className="entry"
-                  onClick={() => handleCardClick(entry.id)}
+                  onClick={() => handleCardClick(entry._id)}
                 >
-                  <p className="entry-date">{new Date(entry.timestamp).toLocaleDateString()}</p>
+                  <p className="entry-date">
+                    {new Date(entry.timestamp).toLocaleDateString()}
+                  </p>
                   <h3>{entry.title}</h3>
                   {entry.photos?.length > 0 && (
-                    <img src={`http://localhost:5000/${entry.photos[0]}`} alt={entry.title} />
+                    <img
+                      src={`http://localhost:5000/${entry.photos[0]}`}
+                      alt={entry.title}
+                    />
                   )}
                   <p><strong>Category:</strong> {entry.category}</p>
                   <p>

@@ -3,7 +3,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
-require('dotenv').config(); // Add this
+require('dotenv').config();
 
 module.exports = router;
 
