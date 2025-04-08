@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useHistory } from 'react-router-dom';
 
+const API_BASE_URL = 'https://schedule-force.gl.at.ply.gg';
+
 function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,7 +13,7 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         email,
         password,
         username,
@@ -20,7 +22,7 @@ function Register() {
       history.push('/community'); // Redirect to community feed
     } catch (err) {
       console.error('Register failed:', err.response?.data?.error || err.message);
-      alert('Registration failed');
+      alert(err.response?.data?.error || 'Registration failed');
     }
   };
 
@@ -33,18 +35,21 @@ function Register() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required
         />
         <button type="submit">Register</button>
       </form>
