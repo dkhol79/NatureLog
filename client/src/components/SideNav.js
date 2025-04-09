@@ -1,32 +1,52 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
+import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome import
+import Logo from '../assets/NatureLog-Logo.png'; // Adjust the import path as needed
 
-const SideNav = ({ entries, handleLogout, handleCardClick }) => {
+const SideNav = ({
+  entries = [],
+  handleLogout = () => {},
+  handleCardClick = () => {},
+  selectedEntryId = null,
+}) => {
   const history = useHistory();
+  const currentPath = history.location.pathname;
 
-  const onLogout = () => {
-    if (typeof handleLogout === 'function') { // Add a safety check
-      handleLogout(); // Call the parent's logout function to clear token
-    } else {
-      console.error('handleLogout is not a function');
-    }
-    history.push('/login'); // Redirect to login page
+  const onLogoutClick = () => {
+    handleLogout();
+    history.push('/login');
   };
 
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
-        <button className="sidebar-btn" onClick={() => history.push('/journal')}>
-          My Journal
+        {/* Logo above My Journal */}
+        <div className="sidebar-logo">
+          <img src={Logo} alt="NatureLog Logo" />
+        </div>
+        <button
+          className={`sidebar-btn ${currentPath === '/journal' ? 'active' : ''}`}
+          onClick={() => history.push('/journal')}
+        >
+          <i className="fa fa-book"></i> My Journal
         </button>
-        <button className="sidebar-btn" onClick={() => history.push('/')}>
-          Community Feed
+        <button
+          className={`sidebar-btn ${currentPath === '/' ? 'active' : ''}`}
+          onClick={() => history.push('/')}
+        >
+          <i className="fa fa-users"></i> Community Feed
         </button>
-        <button className="sidebar-btn" onClick={() => history.push('/account')}>
-          Account
+        <button
+          className={`sidebar-btn ${currentPath === '/account' ? 'active' : ''}`}
+          onClick={() => history.push('/account')}
+        >
+          <i className="fa fa-user"></i> Account
         </button>
-        <button className="logout-btn" onClick={onLogout}>
-          Log Out
+        <button
+          className={`logout-btn ${currentPath === '/login' ? 'active' : ''}`}
+          onClick={onLogoutClick}
+        >
+          <i className="fa fa-sign-out"></i> Log Out
         </button>
       </nav>
       <div className="sidebar-entries">
@@ -35,7 +55,7 @@ const SideNav = ({ entries, handleLogout, handleCardClick }) => {
           entries.map(entry => (
             <div
               key={entry._id}
-              className="sidebar-entry"
+              className={`sidebar-entry ${selectedEntryId === entry._id ? 'active' : ''}`}
               onClick={() => handleCardClick(entry._id)}
             >
               <p className="entry-date">{entry.date}</p>
@@ -45,6 +65,9 @@ const SideNav = ({ entries, handleLogout, handleCardClick }) => {
         ) : (
           <p>No entries found.</p>
         )}
+      </div>
+      <div className="sidebar-footer">
+        <p>&copy; 2025 NatureLog</p>
       </div>
     </aside>
   );

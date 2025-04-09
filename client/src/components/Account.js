@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useHistory } from 'react-router-dom';
-import SideNav from './SideNav';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useHistory } from "react-router-dom";
+import SideNav from "./SideNav";
 
 const Account = ({ token, handleLogout }) => {
   const [userData, setUserData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    username: "",
   });
   const [editData, setEditData] = useState(null);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [categories, setCategories] = useState({
     Plants: false,
     Wildlife: false,
     Weather: false,
-    'Scenic Views': false
+    "Scenic Views": false,
   });
   const [favoriteLocations, setFavoriteLocations] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -26,7 +26,7 @@ const Account = ({ token, handleLogout }) => {
 
   useEffect(() => {
     if (!token) {
-      history.push('/login');
+      history.push("/login");
       return;
     }
 
@@ -36,49 +36,51 @@ const Account = ({ token, handleLogout }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/account', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get("http://localhost:5000/api/account", {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setUserData({
-        firstName: response.data.firstName || '',
-        lastName: response.data.lastName || '',
-        email: response.data.email || '',
-        username: response.data.username || ''
+        firstName: response.data.firstName || "",
+        lastName: response.data.lastName || "",
+        email: response.data.email || "",
+        username: response.data.username || "",
       });
 
-      setCategories(response.data.preferences?.categories || {
-        Plants: false,
-        Wildlife: false,
-        Weather: false,
-        'Scenic Views': false
-      });
+      setCategories(
+        response.data.preferences?.categories || {
+          Plants: false,
+          Wildlife: false,
+          Weather: false,
+          "Scenic Views": false,
+        }
+      );
       setFavoriteLocations(response.data.preferences?.favoriteLocations || []);
       setError(null);
     } catch (error) {
-      console.error('Error fetching user data:', {
+      console.error("Error fetching user data:", {
         status: error.response?.status,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
       });
-      setError(error.response?.data?.error || 'Failed to fetch user data');
+      setError(error.response?.data?.error || "Failed to fetch user data");
       if (error.response?.status === 401) {
         handleLogout();
-        history.push('/login');
+        history.push("/login");
       }
     }
   };
 
   const fetchEntries = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/journal', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get("http://localhost:5000/api/journal", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setEntries(response.data);
       setError(null);
     } catch (error) {
-      console.error('Error fetching journal entries:', error.response?.data || error.message);
-      setError('Failed to fetch journal entries');
+      console.error("Error fetching journal entries:", error.response?.data || error.message);
+      setError("Failed to fetch journal entries");
     }
   };
 
@@ -88,23 +90,21 @@ const Account = ({ token, handleLogout }) => {
 
   const handleSave = async () => {
     try {
-      const response = await axios.put(
-        'http://localhost:5000/api/account',
-        editData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.put("http://localhost:5000/api/account", editData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUserData({
-        firstName: response.data.firstName || '',
-        lastName: response.data.lastName || '',
-        email: response.data.email || '',
-        username: response.data.username || ''
+        firstName: response.data.firstName || "",
+        lastName: response.data.lastName || "",
+        email: response.data.email || "",
+        username: response.data.username || "",
       });
       setEditData(null);
       setError(null);
-      alert('Account information updated successfully');
+      alert("Account information updated successfully");
     } catch (error) {
-      console.error('Error updating account:', error.response?.data || error.message);
-      setError(error.response?.data?.error || 'Failed to update account information');
+      console.error("Error updating account:", error.response?.data || error.message);
+      setError(error.response?.data?.error || "Failed to update account information");
     }
   };
 
@@ -115,27 +115,27 @@ const Account = ({ token, handleLogout }) => {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
-      setError('Please enter both current and new passwords');
+      setError("Please enter both current and new passwords");
       return;
     }
     try {
       await axios.put(
-        'http://localhost:5000/api/account/password',
+        "http://localhost:5000/api/account/password",
         {
           currentPassword: currentPassword,
-          newPassword: newPassword
+          newPassword: newPassword,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentPassword('');
-      setNewPassword('');
+      setCurrentPassword("");
+      setNewPassword("");
       setError(null);
-      alert('Password updated successfully');
+      alert("Password updated successfully");
     } catch (error) {
-      console.error('Error updating password:', error.response?.data || error.message);
-      const errorMessage = error.response?.data?.error || 'Failed to update password';
-      if (errorMessage.toLowerCase().includes('incorrect') || errorMessage.toLowerCase().includes('wrong')) {
-        alert('Current password does not match');
+      console.error("Error updating password:", error.response?.data || error.message);
+      const errorMessage = error.response?.data?.error || "Failed to update password";
+      if (errorMessage.toLowerCase().includes("incorrect") || errorMessage.toLowerCase().includes("wrong")) {
+        alert("Current password does not match");
       } else {
         setError(errorMessage);
       }
@@ -149,30 +149,28 @@ const Account = ({ token, handleLogout }) => {
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+    if (window.confirm("Are you sure you want to delete your account? This cannot be undone.")) {
       try {
-        await axios.delete('http://localhost:5000/api/account', {
-          headers: { Authorization: `Bearer ${token}` }
+        await axios.delete("http://localhost:5000/api/account", {
+          headers: { Authorization: `Bearer ${token}` },
         });
         handleLogout();
       } catch (error) {
-        console.error('Error deleting account:', error.response?.data || error.message);
-        setError(error.response?.data?.error || 'Failed to delete account');
+        console.error("Error deleting account:", error.response?.data || error.message);
+        setError(error.response?.data?.error || "Failed to delete account");
       }
     }
   };
 
   const savePreferences = async (preferences) => {
     try {
-      await axios.put(
-        'http://localhost:5000/api/account/preferences',
-        preferences,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put("http://localhost:5000/api/account/preferences", preferences, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setError(null);
     } catch (error) {
-      console.error('Error saving preferences:', error.response?.data || error.message);
-      setError(error.response?.data?.error || 'Failed to save preferences');
+      console.error("Error saving preferences:", error.response?.data || error.message);
+      setError(error.response?.data?.error || "Failed to save preferences");
     }
   };
 
@@ -184,19 +182,15 @@ const Account = ({ token, handleLogout }) => {
 
   return (
     <div className="app-container">
-      <SideNav
-        entries={entries}
-        handleLogout={handleLogout}
-        handleCardClick={handleCardClick}
-      />
+      <SideNav entries={entries} handleLogout={handleLogout} handleCardClick={handleCardClick} />
       <div className="main-content">
-        <div className="account-page">
-          <h2>Account</h2>
+        <div className="account-container">
+          <h2>Account Settings</h2>
           {error && <p className="error">{error}</p>}
           <section className="account-info">
-            <h3>Account Info</h3>
+            <h3>Account Information</h3>
             {editData ? (
-              <>
+              <div className="form-grid">
                 <div>
                   <label>First Name:</label>
                   <input
@@ -219,20 +213,20 @@ const Account = ({ token, handleLogout }) => {
                   />
                 </div>
                 <div>
-                  <label>Email Address:</label>
+                  <label e>Email Address:</label>
                   <input
                     type="email"
                     value={editData.email}
                     onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="button-group">
                   <button onClick={handleSave}>Save</button>
                   <button onClick={handleCancel}>Cancel</button>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="form-grid">
                 <div>
                   <label>First Name:</label>
                   <input value={userData.firstName} readOnly />
@@ -249,48 +243,80 @@ const Account = ({ token, handleLogout }) => {
                   <label>Email Address:</label>
                   <input value={userData.email} readOnly />
                 </div>
-                <button onClick={handleEdit}>Edit</button>
-              </>
+                <div className="button-group">
+                  <button onClick={handleEdit}>Edit</button>
+                </div>
+              </div>
             )}
           </section>
 
           <section className="password-change">
             <h3>Change Password</h3>
             <form onSubmit={handleUpdatePassword}>
-              <div>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Current Password"
-                  required
-                />
+              <div className="form-grid">
+                <div>
+                  <label>Current Password:</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current Password"
+                    required
+                  />
+                </div>
+                <div>
+                  <label>New Password:</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New Password"
+                    required
+                  />
+                </div>
+                <div className="button-group">
+                  <button type="submit">Update Password</button>
+                </div>
               </div>
-              <div>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New Password"
-                  required
-                />
-              </div>
-              <button type="submit">Update Password</button>
             </form>
           </section>
 
           <section className="preferences">
             <h3>Journal Preferences</h3>
-            {Object.keys(categories).map((category) => (
-              <div key={category}>
+            <div className="form-grid">
+              <div>
                 <input
                   type="checkbox"
-                  checked={categories[category]}
-                  onChange={() => handleCategoryChange(category)}
+                  checked={categories["Plants"]}
+                  onChange={() => handleCategoryChange("Plants")}
                 />
-                <label>{category}</label>
+                <label>Plants</label>
               </div>
-            ))}
+              <div>
+                <input
+                  type="checkbox"
+                  checked={categories["Weather"]}
+                  onChange={() => handleCategoryChange("Weather")}
+                />
+                <label>Weather</label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  checked={categories["Wildlife"]}
+                  onChange={() => handleCategoryChange("Wildlife")}
+                />
+                <label>Wildlife</label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  checked={categories["Scenic Views"]}
+                  onChange={() => handleCategoryChange("Scenic Views")}
+                />
+                <label>Scenic Views</label>
+              </div>
+            </div>
           </section>
 
           <section className="favorite-locations">

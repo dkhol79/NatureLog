@@ -11,8 +11,8 @@ const journalSchema = new mongoose.Schema({
     enum: ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'],
   },
   geolocation: {
-    lat: { type: Number },
-    lng: { type: Number },
+    lat: { type: Number, default: null },  // Added default value
+    lng: { type: Number, default: null },  // Added default value
   },
   location: { type: String, required: true },
   weather: { type: Object, default: { main: { temp: 'N/A' } } },
@@ -23,5 +23,9 @@ const journalSchema = new mongoose.Schema({
   videos: [{ type: String }],
   audio: { type: String },
 });
+
+// Add indexes for better query performance
+journalSchema.index({ userId: 1 });
+journalSchema.index({ timestamp: -1 });
 
 module.exports = mongoose.model('Journal', journalSchema);

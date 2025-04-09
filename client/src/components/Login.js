@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useHistory } from 'react-router-dom';
+import '../styles.css';
 
-const Login = ({ setToken }) => {
+const Login = ({ setToken, isRegisterDefault = false }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(isRegisterDefault);
+  const history = useHistory();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = isRegister ? '/api/auth/register' : '/api/auth/login';
-    const data = isRegister ? { email, password, username } : { email, password };
     try {
-      const res = await axios.post(`http://localhost:5000${url}`, data);
-      setToken(res.data.token);
-      localStorage.setItem('token', res.data.token);
-      window.location.href = '/journal';
+      const endpoint = isRegister ? '/register' : '/login';
+      const payload = isRegister ? { email, password, username } : { email, password };
+      const res = await axios.post(`http://localhost:5000/api/auth${endpoint}`, payload);
+      const { token } = res.data;
+
+      // Store token in localStorage
+      localStorage.setItem('token', token);
+      // Update token in App.js state
+      setToken(token);
+      // Redirect to the journal page
+      history.push('/journal');
     } catch (err) {
-      alert(err.response.data.error);
+      console.error('Auth error:', err.response?.data || err.message);
+      alert('Authentication failed. Please try again.');
     }
   };
 
@@ -25,9 +34,29 @@ const Login = ({ setToken }) => {
     <div className="login">
       <h2>{isRegister ? 'Register' : 'Login'}</h2>
       <form onSubmit={handleSubmit}>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />
-        {isRegister && <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" required />}
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        {isRegister && (
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        )}
         <button type="submit">{isRegister ? 'Register' : 'Login'}</button>
       </form>
       <button onClick={() => setIsRegister(!isRegister)}>
