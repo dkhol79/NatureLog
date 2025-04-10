@@ -24,7 +24,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// Initialize multer without fields (we'll specify fields in the routes)
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
@@ -35,7 +34,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-// Define the fields for file uploads
 const uploadFields = [
   { name: 'photos', maxCount: 5 },
   { name: 'videos', maxCount: 2 },
@@ -67,7 +65,7 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// POST: Create a new journal entry
+// POST: Create a new journal entry (authenticated only)
 router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, lat, lng, location, isPublic, date } = req.body;
 
@@ -139,10 +137,10 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
   }
 });
 
-// GET: Fetch all user journals
+// GET: Fetch all user journals (authenticated only)
 router.get('/', authenticate, async (req, res) => {
   try {
-    const userJournals = await Journal.find({ userId: req.user.id });
+    const userJournals = await Journal.find({ userId: req.user.id }).sort({ timestamp: -1 });
     res.json(userJournals);
   } catch (err) {
     console.error('Error fetching journals:', err);
@@ -150,10 +148,12 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// GET: Fetch community journals
+// GET: Fetch community journals (public access)
 router.get('/community', async (req, res) => {
   try {
-    const publicJournals = await Journal.find({ isPublic: true });
+    const publicJournals = await Journal.find({ isPublic: true })
+      .populate('userId', 'username') // Populate username
+      .sort({ timestamp: -1 });
     res.json(publicJournals);
   } catch (err) {
     console.error('Error fetching community journals:', err);
@@ -161,12 +161,24 @@ router.get('/community', async (req, res) => {
   }
 });
 
-// GET: Fetch a single journal entry
-router.get('/:id', authenticate, async (req, res) => {
+// GET: Fetch a single journal entry (allow public access for public entries)
+router.get('/:id', async (req, res) => {
   try {
-    const entry = await Journal.findById(req.params.id);
+    const entry = await Journal.findById(req.params.id).populate('userId', 'username');
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
-    if (entry.userId.toString() !== req.user.id && !entry.isPublic) {
+
+    const token = req.headers.authorization?.split(' ')[1];
+    let userId = null;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (err) {
+        console.error('Token verification failed:', err.message);
+      }
+    }
+
+    if (!entry.isPublic && (!userId || entry.userId._id.toString() !== userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     res.json(entry);
@@ -176,7 +188,7 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// PUT: Update a journal entry
+// PUT: Update a journal entry (authenticated only)
 router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, location, isPublic, date, lat, lng } = req.body;
 
@@ -222,8 +234,8 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
 
     const updatedEntry = await Journal.findByIdAndUpdate(
       req.params.id,
-      { $set: updateData }, // Use $set to update only specified fields
-      { new: true, runValidators: true } // Type-safe options
+      { $set: updateData },
+      { new: true, runValidators: true }
     );
     res.json(updatedEntry);
   } catch (err) {
@@ -232,7 +244,7 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
   }
 });
 
-// DELETE: Delete a journal entry
+// DELETE: Delete a journal entry (authenticated only)
 router.delete('/:id', authenticate, async (req, res) => {
   console.log(`DELETE /api/journal/${req.params.id} - Request received`);
   console.log('User ID from token:', req.user.id);

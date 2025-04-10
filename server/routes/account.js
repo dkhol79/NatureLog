@@ -1,7 +1,8 @@
-// server/routes/account.js
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs'); // Added for password hashing
 const User = require('../models/User');
+const Journal = require('../models/Journal'); // Added for journal deletion
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -29,7 +30,7 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('User data from DB:', user); // Debug log
+    console.log('User data from DB:', user);
 
     res.json({
       firstName: user.firstName || '',
@@ -41,10 +42,10 @@ router.get('/', authenticate, async (req, res) => {
           Plants: false,
           Wildlife: false,
           Weather: false,
-          'Scenic Views': false
+          'Scenic Views': false,
         },
-        favoriteLocations: []
-      }
+        favoriteLocations: [],
+      },
     });
   } catch (err) {
     console.error('Error fetching user data:', err);
@@ -79,30 +80,32 @@ router.put('/', authenticate, async (req, res) => {
           Plants: false,
           Wildlife: false,
           Weather: false,
-          'Scenic Views': false
+          'Scenic Views': false,
         },
-        favoriteLocations: []
-      }
+        favoriteLocations: [],
+      },
     });
   } catch (err) {
     console.error('Error updating account:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    res.status(500).json({ errorACM: 'Server error', details: err.message });
   }
 });
 
 // PUT update password
 router.put('/password', authenticate, async (req, res) => {
   try {
+    const { password } = req.body; // Changed to just 'password' since it's the new one
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!req.body.password) {
+    if (!password) {
       return res.status(400).json({ error: 'Password is required' });
     }
 
-    user.password = req.body.password; // In production, hash this
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt); // Hash the new password
     await user.save();
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
@@ -126,7 +129,7 @@ router.put('/preferences', authenticate, async (req, res) => {
     await user.save();
     res.json({
       message: 'Preferences updated successfully',
-      preferences: user.preferences
+      preferences: user.preferences,
     });
   } catch (err) {
     console.error('Error updating preferences:', err);
@@ -143,7 +146,7 @@ router.delete('/', authenticate, async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.user.id);
-    await Journal.deleteMany({ userId: req.user.id });
+    await Journal.deleteMany({ userId: req.user.id }); // Ensure Journal is imported
     res.json({ message: 'Account and associated journals deleted successfully' });
   } catch (err) {
     console.error('Error deleting account:', err);

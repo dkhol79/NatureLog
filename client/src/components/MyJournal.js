@@ -4,7 +4,7 @@ import { useHistory } from 'react-router-dom';
 import SideNav from './SideNav';
 import TextEditor from './TextEditor';
 
-const MyJournal = ({ token, handleLogout }) => {
+const MyJournal = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -28,7 +28,10 @@ const MyJournal = ({ token, handleLogout }) => {
   ];
 
   useEffect(() => {
-    if (!token) window.location.href = '/login';
+    if (!token) {
+      history.push('/login');
+      return;
+    }
 
     if (history.location.state?.entryToEdit) {
       handleEdit(history.location.state.entryToEdit);
@@ -69,7 +72,7 @@ const MyJournal = ({ token, handleLogout }) => {
         });
         setEntries(res.data);
       } catch (err) {
-        console.error('Error fetching entries:', err);
+        console.error('Error fetching entries:', err.response?.data || err.message);
       }
     };
 
@@ -150,7 +153,6 @@ const MyJournal = ({ token, handleLogout }) => {
     if (entry.photos) setPhotos(entry.photos.map(photo => photo));
     if (entry.videos) setVideos(entry.videos.map(video => video));
     if (entry.audio) setAudio(entry.audio);
-    if (editorRef.current) editorRef.current.innerHTML = entry.content;
   };
 
   const handleSubmit = async (e) => {
@@ -172,36 +174,20 @@ const MyJournal = ({ token, handleLogout }) => {
       formData.append('lng', parseFloat(locationData.lng));
     }
 
-    // Handle photos
     if (photos.length > 0) {
       photos.forEach((photo, index) => {
-        if (photo instanceof File) {
-          formData.append('photos', photo);
-          console.log(`Appending photo ${index}:`, photo.name, photo.size);
-        }
+        if (photo instanceof File) formData.append('photos', photo);
       });
     }
 
-    // Handle videos
     if (videos.length > 0) {
       videos.forEach((video, index) => {
-        if (video instanceof File) {
-          formData.append('videos', video);
-          console.log(`Appending video ${index}:`, video.name, video.size);
-        }
+        if (video instanceof File) formData.append('videos', video);
       });
     }
 
-    // Handle audio
     if (audio && (audio instanceof Blob || audio instanceof File)) {
       formData.append('audio', audio);
-      console.log('Appending audio:', audio.name || 'recorded audio', audio.size);
-    }
-
-    // Log FormData contents
-    console.log('FormData contents:');
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value instanceof File ? `${value.name} (${value.size} bytes)` : value);
     }
 
     try {
@@ -212,11 +198,6 @@ const MyJournal = ({ token, handleLogout }) => {
           'Content-Type': 'multipart/form-data',
         },
       };
-
-      console.log('Sending request to:', editingEntry ?
-        `http://localhost:5000/api/journal/${editingEntry._id}` :
-        'http://localhost:5000/api/journal');
-      console.log('Request config:', config);
 
       if (editingEntry) {
         res = await axios.put(
@@ -233,8 +214,6 @@ const MyJournal = ({ token, handleLogout }) => {
         setEntries([...entries, res.data]);
       }
 
-      console.log('Response:', res.data);
-
       setTitle('');
       setContent('');
       setIsPublic(false);
@@ -245,104 +224,121 @@ const MyJournal = ({ token, handleLogout }) => {
       setLocation('');
       setLocationData({ lat: '', lng: '', address: '' });
     } catch (err) {
-      console.error('Submission error:', {
-        message: err.message,
-        response: err.response ? {
-          status: err.response.status,
-          data: err.response.data,
-          headers: err.response.headers
-        } : 'No response received'
-      });
+      console.error('Submission error:', err.response?.data || err.message);
       alert(`Failed to ${editingEntry ? 'update' : 'add'} entry: ${err.response?.data?.error || err.message}`);
     }
   };
 
-  const handleCardClick = (id) => {
-    history.push(`/entry/${id}`);
-  };
-
   return (
     <div className="app-container">
-      <SideNav entries={entries} handleLogout={handleLogout} handleCardClick={handleCardClick} />
+      <SideNav
+        token={token}
+        entries={entries}
+        handleLogout={() => { localStorage.removeItem('token'); history.push('/login'); }}
+        handleCardClick={(id) => history.push(`/entry/${id}`)}
+      />
       <main className="main-content">
         <div className="journal-container">
-          <h2>My Journal</h2>
+          <div className="journal-header">
+            <h2>My Journal</h2>
+          </div>
           <form onSubmit={handleSubmit} className="journal-form">
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              placeholder="Date (e.g., 5 April 2025)"
-              required
-            />
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              required
-            />
-            <TextEditor
-              content={content}
-              setContent={setContent}
-              photos={photos}
-              setPhotos={setPhotos}
-              videos={videos}
-              setVideos={setVideos}
-              audio={audio}
-              setAudio={setAudio}
-            />
-            <div className="location-container">
-              <input
-                type="text"
-                value={location}
-                onChange={handleLocationChange}
-                placeholder="Location (auto-detected or enter manually)"
-                required
-                autoComplete="off"
-              />
-              {isLocationDenied && (
-                <button
-                  type="button"
-                  onClick={handleAllowLocation}
-                  className="allow-location-btn"
-                >
-                  Allow Location
+            <div className="form-grid">
+              <div>
+                <label>Date</label>
+                <input
+                  type="text"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  placeholder="e.g., 5 April 2025"
+                  required
+                />
+              </div>
+              <div>
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter title"
+                  required
+                />
+              </div>
+              <div className="full-width">
+                <label>Content</label>
+                <TextEditor
+                  content={content}
+                  setContent={setContent}
+                  photos={photos}
+                  setPhotos={setPhotos}
+                  videos={videos}
+                  setVideos={setVideos}
+                  audio={audio}
+                  setAudio={setAudio}
+                />
+              </div>
+              <div>
+                <label>Location</label>
+                <div className="location-container">
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={handleLocationChange}
+                    placeholder="Enter or auto-detect location"
+                    required
+                    autoComplete="off"
+                  />
+                  {isLocationDenied && (
+                    <button
+                      type="button"
+                      onClick={handleAllowLocation}
+                      className="allow-location-btn"
+                    >
+                      Allow Location
+                    </button>
+                  )}
+                  {locationSuggestions.length > 0 && (
+                    <ul className="location-suggestions">
+                      {locationSuggestions.map((suggestion, index) => (
+                        <li
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => handleSuggestionSelect(suggestion)}
+                        >
+                          {suggestion.display_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label>Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="checkbox-container">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                  />
+                  Make this entry public
+                </label>
+              </div>
+            </div>
+            <div className="form-actions">
+              <button type="submit">{editingEntry ? 'Update Entry' : 'Add Entry'}</button>
+              {editingEntry && (
+                <button type="button" onClick={() => setEditingEntry(null)}>
+                  Cancel Edit
                 </button>
               )}
-              {locationSuggestions.length > 0 && (
-                <ul className="location-suggestions">
-                  {locationSuggestions.map((suggestion, index) => (
-                    <li
-                      key={index}
-                      className="suggestion-item"
-                      onClick={() => handleSuggestionSelect(suggestion)}
-                    >
-                      {suggestion.display_name}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-            <label>
-              <input
-                type="checkbox"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-              />
-              Make this entry public
-            </label>
-            <button type="submit">{editingEntry ? 'Update Entry' : 'Add Entry'}</button>
-            {editingEntry && (
-              <button type="button" onClick={() => setEditingEntry(null)}>
-                Cancel Edit
-              </button>
-            )}
           </form>
         </div>
       </main>

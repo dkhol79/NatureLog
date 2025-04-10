@@ -8,31 +8,31 @@ const Login = ({ setToken, isRegisterDefault = false }) => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isRegister, setIsRegister] = useState(isRegisterDefault);
+  const [error, setError] = useState('');
   const history = useHistory();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const endpoint = isRegister ? '/register' : '/login';
       const payload = isRegister ? { email, password, username } : { email, password };
       const res = await axios.post(`http://localhost:5000/api/auth${endpoint}`, payload);
       const { token } = res.data;
 
-      // Store token in localStorage
       localStorage.setItem('token', token);
-      // Update token in App.js state
       setToken(token);
-      // Redirect to the journal page
       history.push('/journal');
     } catch (err) {
       console.error('Auth error:', err.response?.data || err.message);
-      alert('Authentication failed. Please try again.');
+      setError(err.response?.data?.error || 'Authentication failed. Please try again.');
     }
   };
 
   return (
     <div className="login">
       <h2>{isRegister ? 'Register' : 'Login'}</h2>
+      {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="email"

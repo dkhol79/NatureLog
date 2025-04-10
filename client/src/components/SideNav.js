@@ -1,9 +1,10 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
-import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome import
-import Logo from '../assets/NatureLog-Logo.png'; // Adjust the import path as needed
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import Logo from '../assets/NatureLog-Logo.png';
 
 const SideNav = ({
+  token,
   entries = [],
   handleLogout = () => {},
   handleCardClick = () => {},
@@ -17,10 +18,36 @@ const SideNav = ({
     history.push('/login');
   };
 
+  if (!token) {
+    return (
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <img src={Logo} alt="NatureLog Logo" />
+        </div>
+        <nav className="sidebar-nav">
+          <button
+            className="sidebar-btn"
+            onClick={() => history.push('/login')}
+          >
+            Log In
+          </button>
+          <button
+            className="sidebar-btn"
+            onClick={() => history.push('/register')}
+          >
+            Sign Up
+          </button>
+        </nav>
+        <div className="sidebar-footer">
+          <p>© 2025 NatureLog</p>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
-        {/* Logo above My Journal */}
         <div className="sidebar-logo">
           <img src={Logo} alt="NatureLog Logo" />
         </div>
@@ -43,7 +70,7 @@ const SideNav = ({
           <i className="fa fa-user"></i> Account
         </button>
         <button
-          className={`logout-btn ${currentPath === '/login' ? 'active' : ''}`}
+          className="logout-btn"
           onClick={onLogoutClick}
         >
           <i className="fa fa-sign-out"></i> Log Out
@@ -67,7 +94,7 @@ const SideNav = ({
         )}
       </div>
       <div className="sidebar-footer">
-        <p>&copy; 2025 NatureLog</p>
+        <p>© 2025 NatureLog</p>
       </div>
     </aside>
   );

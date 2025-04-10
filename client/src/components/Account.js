@@ -3,7 +3,7 @@ import axios from "axios";
 import { useHistory } from "react-router-dom";
 import SideNav from "./SideNav";
 
-const Account = ({ token, handleLogout }) => {
+const Account = ({ token }) => {
   const [userData, setUserData] = useState({
     firstName: "",
     lastName: "",
@@ -11,7 +11,6 @@ const Account = ({ token, handleLogout }) => {
     username: "",
   });
   const [editData, setEditData] = useState(null);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [categories, setCategories] = useState({
     Plants: false,
@@ -58,15 +57,10 @@ const Account = ({ token, handleLogout }) => {
       setFavoriteLocations(response.data.preferences?.favoriteLocations || []);
       setError(null);
     } catch (error) {
-      console.error("Error fetching user data:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
+      console.error("Error fetching user data:", error.response?.data || error.message);
       setError(error.response?.data?.error || "Failed to fetch user data");
       if (error.response?.status === 401) {
         handleLogout();
-        history.push("/login");
       }
     }
   };
@@ -82,6 +76,11 @@ const Account = ({ token, handleLogout }) => {
       console.error("Error fetching journal entries:", error.response?.data || error.message);
       setError("Failed to fetch journal entries");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    history.push("/login");
   };
 
   const handleEdit = () => {
@@ -114,31 +113,22 @@ const Account = ({ token, handleLogout }) => {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (!currentPassword || !newPassword) {
-      setError("Please enter both current and new passwords");
+    if (!newPassword) {
+      setError("Please enter a new password");
       return;
     }
     try {
       await axios.put(
         "http://localhost:5000/api/account/password",
-        {
-          currentPassword: currentPassword,
-          newPassword: newPassword,
-        },
+        { password: newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentPassword("");
       setNewPassword("");
       setError(null);
       alert("Password updated successfully");
     } catch (error) {
       console.error("Error updating password:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.error || "Failed to update password";
-      if (errorMessage.toLowerCase().includes("incorrect") || errorMessage.toLowerCase().includes("wrong")) {
-        alert("Current password does not match");
-      } else {
-        setError(errorMessage);
-      }
+      setError(error.response?.data?.error || "Failed to update password");
     }
   };
 
@@ -182,7 +172,12 @@ const Account = ({ token, handleLogout }) => {
 
   return (
     <div className="app-container">
-      <SideNav entries={entries} handleLogout={handleLogout} handleCardClick={handleCardClick} />
+      <SideNav
+        token={token}
+        entries={entries}
+        handleLogout={handleLogout}
+        handleCardClick={handleCardClick}
+      />
       <div className="main-content">
         <div className="account-container">
           <h2>Account Settings</h2>
@@ -213,7 +208,7 @@ const Account = ({ token, handleLogout }) => {
                   />
                 </div>
                 <div>
-                  <label e>Email Address:</label>
+                  <label>Email Address:</label>
                   <input
                     type="email"
                     value={editData.email}
@@ -254,16 +249,6 @@ const Account = ({ token, handleLogout }) => {
             <h3>Change Password</h3>
             <form onSubmit={handleUpdatePassword}>
               <div className="form-grid">
-                <div>
-                  <label>Current Password:</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Current Password"
-                    required
-                  />
-                </div>
                 <div>
                   <label>New Password:</label>
                   <input

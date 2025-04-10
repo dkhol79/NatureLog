@@ -1,25 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
-import SideNav from './SideNav'; // Adjust the import path as needed
+import SideNav from './SideNav';
 
 const CommunityFeed = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [sidebarEntries, setSidebarEntries] = useState([]);
-  const [loading, setLoading] = useState(true); // Added loading state for better UX
+  const [loading, setLoading] = useState(true);
   const history = useHistory();
 
   useEffect(() => {
-    // Check token and redirect if missing
-    if (!token) {
-      history.push('/login');
-      return;
-    }
-
     const fetchCommunityEntries = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/journal/community', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         setEntries(res.data);
       } catch (err) {
@@ -28,6 +22,7 @@ const CommunityFeed = ({ token }) => {
     };
 
     const fetchSidebarEntries = async () => {
+      if (!token) return;
       try {
         const res = await axios.get('http://localhost:5000/api/journal', {
           headers: { Authorization: `Bearer ${token}` },
@@ -45,9 +40,10 @@ const CommunityFeed = ({ token }) => {
     };
 
     fetchData();
-  }, [token, history]);
+  }, [token]);
 
   const handleCardClick = (id) => {
+    // Navigate to entry details for all users
     history.push(`/entry/${id}`);
   };
 
@@ -57,14 +53,9 @@ const CommunityFeed = ({ token }) => {
   };
 
   const handleSidebarCardClick = (entryId) => {
-    // Ensure token exists before navigating
-    if (!token) {
-      console.error('No token found, redirecting to login');
-      history.push('/login');
-      return;
+    if (token) {
+      history.push(`/entry/${entryId}`);
     }
-    console.log('Navigating to entry:', entryId); // Debug log
-    history.push(`/entry/${entryId}`);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -72,6 +63,7 @@ const CommunityFeed = ({ token }) => {
   return (
     <div className="app-container">
       <SideNav
+        token={token}
         entries={sidebarEntries}
         handleLogout={handleLogout}
         handleCardClick={handleSidebarCardClick}
