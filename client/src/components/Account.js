@@ -11,6 +11,8 @@ const Account = ({ token }) => {
     username: "",
   });
   const [editData, setEditData] = useState(null);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [categories, setCategories] = useState({
     Plants: false,
@@ -113,23 +115,37 @@ const Account = ({ token }) => {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (!newPassword) {
-      setError("Please enter a new password");
+    if (!oldPassword || !newPassword) {
+      setError("Please enter both old and new passwords");
       return;
     }
+
     try {
       await axios.put(
         "http://localhost:5000/api/account/password",
-        { password: newPassword },
+        { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      setOldPassword("");
       setNewPassword("");
+      setIsEditingPassword(false);
       setError(null);
       alert("Password updated successfully");
     } catch (error) {
       console.error("Error updating password:", error.response?.data || error.message);
       setError(error.response?.data?.error || "Failed to update password");
     }
+  };
+
+  const handleEditPasswordClick = () => {
+    setIsEditingPassword(true);
+  };
+
+  const handleCancelPasswordEdit = () => {
+    setIsEditingPassword(false);
+    setOldPassword("");
+    setNewPassword("");
+    setError(null);
   };
 
   const handleCategoryChange = async (category) => {
@@ -247,23 +263,48 @@ const Account = ({ token }) => {
 
           <section className="password-change">
             <h3>Change Password</h3>
-            <form onSubmit={handleUpdatePassword}>
+            {!isEditingPassword ? (
               <div className="form-grid">
                 <div>
-                  <label>New Password:</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New Password"
-                    required
-                  />
+                  <label>Current Password:</label>
+                  <input value="••••••••" readOnly />
                 </div>
                 <div className="button-group">
-                  <button type="submit">Update Password</button>
+                  <button onClick={handleEditPasswordClick}>Update Password</button>
                 </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleUpdatePassword}>
+                <div className="form-grid password-grid">
+                  <div className="password-column">
+                    <label>Old Password:</label>
+                    <input
+                      type="password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="Old Password"
+                      required
+                    />
+                  </div>
+                  <div className="password-column">
+                    <label>New Password:</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New Password"
+                      required
+                    />
+                  </div>
+                  <div className="button-group full-width">
+                    <button type="submit">Save</button>
+                    <button type="button" onClick={handleCancelPasswordEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
           </section>
 
           <section className="preferences">

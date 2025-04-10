@@ -355,6 +355,7 @@ const EntryDetail = ({ token }) => {
               </p>
               <p><strong>By:</strong> {entry.username}</p>
               <p><strong>Created:</strong> {new Date(entry.timestamp).toLocaleDateString()}</p>
+              <p><strong>Time:</strong> {new Date(entry.timestamp).toLocaleTimeString()}</p>
               <p><strong>Public:</strong> {entry.isPublic ? "Yes" : "No"}</p>
             </div>
             {token && isOwner && (

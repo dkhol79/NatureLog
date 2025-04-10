@@ -30,7 +30,7 @@ const TextEditor = ({ content, setContent, photos, setPhotos, videos, setVideos,
     '🙌', '🤓', '😎', '🥳', '😴', '🍕', '🌈', '☀️', '🌙', '⭐'];
   const fontList = ['Roboto', 'Arial', 'Times New Roman', 'Courier New', 'Georgia',
     'Verdana', 'Helvetica', 'Comic Sans MS', 'Impact', 'Trebuchet MS'];
-  const fontSizes = ['12', '14', '16', '18', '20', '24', '28', '32'];
+  const fontSizes = ['10','12', '14', '16', '18', '20', '24', '28', '32'];
 
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.innerHTML) {

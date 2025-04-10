@@ -1,8 +1,9 @@
+// server\routes\account.js
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs'); // Added for password hashing
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const Journal = require('../models/Journal'); // Added for journal deletion
+const Journal = require('../models/Journal');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -91,22 +92,32 @@ router.put('/', authenticate, async (req, res) => {
   }
 });
 
-// PUT update password
+// PUT update password - CORRECTED VERSION
 router.put('/password', authenticate, async (req, res) => {
   try {
-    const { password } = req.body; // Changed to just 'password' since it's the new one
+    const { oldPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!password) {
-      return res.status(400).json({ error: 'Password is required' });
+    // Check if both passwords are provided
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Both old and new passwords are required' });
     }
 
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Incorrect old password' });
+    }
+
+    // Hash and update new password
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt); // Hash the new password
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
+
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
     console.error('Error updating password:', err);
@@ -146,7 +157,7 @@ router.delete('/', authenticate, async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.user.id);
-    await Journal.deleteMany({ userId: req.user.id }); // Ensure Journal is imported
+    await Journal.deleteMany({ userId: req.user.id });
     res.json({ message: 'Account and associated journals deleted successfully' });
   } catch (err) {
     console.error('Error deleting account:', err);
