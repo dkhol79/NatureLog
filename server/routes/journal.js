@@ -9,15 +9,13 @@ const Journal = require('../models/Journal');
 const User = require('../models/User');
 require('dotenv').config();
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../uploads');
+const uploadDir = path.join(__dirname, '../Uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
+  destination: (req, file, cb) => cb(null, 'Uploads/'),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, `${uniqueSuffix}-${file.originalname}`);
@@ -31,7 +29,7 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
     else cb(new Error(`Invalid file type: ${file.mimetype}. Allowed: image/jpeg, image/png, video/mp4, audio/mpeg`));
   },
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const uploadFields = [
@@ -40,7 +38,6 @@ const uploadFields = [
   { name: 'audio', maxCount: 1 },
 ];
 
-// Helper function to parse "Town, State" from full address
 const parseTownState = (address) => {
   if (!address) return 'Unknown';
   const parts = address.split(', ').map(part => part.trim());
@@ -48,7 +45,6 @@ const parseTownState = (address) => {
   return address;
 };
 
-// Middleware to authenticate JWT
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
@@ -56,16 +52,26 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token verified, user ID:', req.user.id);
-    next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    User.findById(decoded.id).then(user => {
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.tokenVersion !== decoded.tokenVersion) {
+        return res.status(401).json({ error: 'Token is invalid due to password change' });
+      }
+      next();
+    }).catch(err => {
+      console.error('Error finding user:', err);
+      res.status(500).json({ error: 'Server error' });
+    });
   } catch (err) {
     console.error('Token verification failed:', err.message);
     res.status(401).json({ error: 'Invalid token' });
   }
 };
 
-// POST: Create a new journal entry (authenticated only)
 router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, lat, lng, location, isPublic, date } = req.body;
 
@@ -83,17 +89,23 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     return res.status(400).json({ error: 'Invalid category' });
   }
 
-  let weatherData = { main: { temp: 'N/A' } };
+  let weatherData = null;
   if (lat && lng) {
     try {
-      const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
-      );
-      weatherData = response.data;
-      console.log('Weather data fetched:', weatherData);
+      const apiKey = process.env.OPENWEATHER_API_KEY;
+      if (!apiKey) {
+        console.error('OpenWeather API key is missing');
+        weatherData = null;
+      } else {
+        const response = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
+        );
+        weatherData = response.data;
+        console.log('Weather data fetched:', weatherData);
+      }
     } catch (err) {
       console.error('Weather API error:', err.message);
+      weatherData = null;
     }
   }
 
@@ -137,7 +149,6 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
   }
 });
 
-// GET: Fetch all user journals (authenticated only)
 router.get('/', authenticate, async (req, res) => {
   try {
     const userJournals = await Journal.find({ userId: req.user.id }).sort({ timestamp: -1 });
@@ -148,11 +159,10 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// GET: Fetch community journals (public access)
 router.get('/community', async (req, res) => {
   try {
     const publicJournals = await Journal.find({ isPublic: true })
-      .populate('userId', 'username') // Populate username
+      .populate('userId', 'username')
       .sort({ timestamp: -1 });
     res.json(publicJournals);
   } catch (err) {
@@ -161,7 +171,6 @@ router.get('/community', async (req, res) => {
   }
 });
 
-// GET: Fetch a single journal entry (allow public access for public entries)
 router.get('/:id', async (req, res) => {
   try {
     const entry = await Journal.findById(req.params.id).populate('userId', 'username');
@@ -181,14 +190,19 @@ router.get('/:id', async (req, res) => {
     if (!entry.isPublic && (!userId || entry.userId._id.toString() !== userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    res.json(entry);
+
+    // Convert entry to JSON and ensure userId is a string
+    const entryJson = entry.toJSON();
+    entryJson.userId = entry.userId._id.toString();
+    entryJson.username = entry.userId.username;
+
+    res.json(entryJson);
   } catch (err) {
     console.error('Error fetching journal:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// PUT: Update a journal entry (authenticated only)
 router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, location, isPublic, date, lat, lng } = req.body;
 
@@ -217,15 +231,22 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
     if (lat && lng) {
       updateData.geolocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
       try {
-        const apiKey = '3479fe09a904e4d13a8efb534ee2664d';
-        const response = await axios.get(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
-        );
-        updateData.weather = response.data;
+        const apiKey = process.env.OPENWEATHER_API_KEY;
+        if (!apiKey) {
+          console.error('OpenWeather API key is missing');
+          updateData.weather = null;
+        } else {
+          const response = await axios.get(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
+          );
+          updateData.weather = response.data;
+        }
       } catch (err) {
         console.error('Weather API error during update:', err.message);
-        updateData.weather = existingEntry.weather;
+        updateData.weather = null;
       }
+    } else {
+      updateData.weather = existingEntry.weather;
     }
 
     updateData.photos = req.files?.photos?.map(f => f.path) || existingEntry.photos;
@@ -244,7 +265,6 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
   }
 });
 
-// DELETE: Delete a journal entry (authenticated only)
 router.delete('/:id', authenticate, async (req, res) => {
   console.log(`DELETE /api/journal/${req.params.id} - Request received`);
   console.log('User ID from token:', req.user.id);

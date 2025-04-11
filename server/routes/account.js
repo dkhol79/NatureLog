@@ -1,4 +1,3 @@
-// server\routes\account.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -14,9 +13,20 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token verified, user ID:', req.user.id);
-    next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    User.findById(decoded.id).then(user => {
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.tokenVersion !== decoded.tokenVersion) {
+        return res.status(401).json({ error: 'Token is invalid due to password change' });
+      }
+      next();
+    }).catch(err => {
+      console.error('Error finding user:', err);
+      res.status(500).json({ error: 'Server error' });
+    });
   } catch (err) {
     console.error('Token verification failed:', err.message);
     res.status(401).json({ error: 'Invalid token' });
@@ -34,6 +44,7 @@ router.get('/', authenticate, async (req, res) => {
     console.log('User data from DB:', user);
 
     res.json({
+      _id: user._id, // Added to support ownership check
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       email: user.email || '',
@@ -72,6 +83,7 @@ router.put('/', authenticate, async (req, res) => {
     await user.save();
 
     res.json({
+      _id: user._id, // Added to support ownership check
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       email: user.email,
@@ -88,11 +100,11 @@ router.put('/', authenticate, async (req, res) => {
     });
   } catch (err) {
     console.error('Error updating account:', err);
-    res.status(500).json({ errorACM: 'Server error', details: err.message });
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
-// PUT update password - CORRECTED VERSION
+// PUT update password
 router.put('/password', authenticate, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -102,23 +114,21 @@ router.put('/password', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if both passwords are provided
     if (!oldPassword || !newPassword) {
       return res.status(400).json({ error: 'Both old and new passwords are required' });
     }
 
-    // Verify old password
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Incorrect old password' });
     }
 
-    // Hash and update new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
+    user.tokenVersion += 1; // Increment tokenVersion
     await user.save();
 
-    res.json({ message: 'Password updated successfully' });
+    res.json({ message: 'Password updated successfully', requiresLogin: true });
   } catch (err) {
     console.error('Error updating password:', err);
     res.status(500).json({ error: 'Server error', details: err.message });

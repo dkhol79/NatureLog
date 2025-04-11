@@ -17,7 +17,7 @@ const Login = ({ setToken, isRegisterDefault = false }) => {
     try {
       const endpoint = isRegister ? '/register' : '/login';
       const payload = isRegister ? { email, password, username } : { email, password };
-      const res = await axios.post(`http://localhost:5000/api/auth${endpoint}`, payload);
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth${endpoint}`, payload);
       const { token } = res.data;
 
       localStorage.setItem('token', token);

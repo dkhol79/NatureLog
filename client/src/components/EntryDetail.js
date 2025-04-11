@@ -6,8 +6,8 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 
 const EntryDetail = ({ token }) => {
   const [entry, setEntry] = useState(null);
-  const [entries, setEntries] = useState([]); // Sidebar entries (authenticated only)
-  const [isOwner, setIsOwner] = useState(false); // Track if user owns the entry
+  const [entries, setEntries] = useState([]);
+  const [isOwner, setIsOwner] = useState(false);
   const { id } = useParams();
   const history = useHistory();
 
@@ -15,32 +15,41 @@ const EntryDetail = ({ token }) => {
     const fetchEntry = async () => {
       try {
         const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-        const res = await axios.get(`http://localhost:5000/api/journal/${id}`, config);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal/${id}`, config);
         setEntry(res.data);
 
-        // Check ownership if authenticated
         if (token) {
-          const userRes = await axios.get("http://localhost:5000/api/journal", {
+          // Fetch current user data to get their ID
+          const accountRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/account`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const currentUserId = userRes.data.some(e => e.userId === res.data.userId) ? res.data.userId : null;
-          setIsOwner(currentUserId === res.data.userId);
+          // Compare current user's ID with entry's userId
+          setIsOwner(accountRes.data._id === res.data.userId);
         }
       } catch (err) {
         console.error("Error fetching entry:", err.response?.data || err.message);
-        history.push("/"); // Redirect to Community Feed on error
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          history.push("/login");
+        } else {
+          history.push("/");
+        }
       }
     };
 
     const fetchEntries = async () => {
-      if (!token) return; // Skip for unauthenticated users
+      if (!token) return;
       try {
-        const res = await axios.get("http://localhost:5000/api/journal", {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setEntries(res.data);
       } catch (err) {
         console.error("Error fetching entries:", err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          history.push("/login");
+        }
       }
     };
 
@@ -105,16 +114,30 @@ const EntryDetail = ({ token }) => {
   };
 
   const handleEdit = () => {
-    if (!token || !isOwner) return;
+    if (!token) {
+      console.log("No token provided, cannot edit");
+      return;
+    }
+    if (!isOwner) {
+      console.log("User is not the owner, cannot edit");
+      return;
+    }
     const editableContent = prepareContentForEditing(entry.content);
     history.push("/journal", { entryToEdit: { ...entry, content: editableContent } });
   };
 
   const handleDelete = async () => {
-    if (!token || !isOwner) return;
+    if (!token) {
+      console.log("No token provided, cannot delete");
+      return;
+    }
+    if (!isOwner) {
+      console.log("User is not the owner, cannot delete");
+      return;
+    }
     if (window.confirm("Are you sure you want to delete this entry?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/journal/${id}`, {
+        await axios.delete(`${process.env.REACT_APP_API_URL}/api/journal/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setEntries(entries.filter((e) => e._id !== id));
@@ -124,13 +147,17 @@ const EntryDetail = ({ token }) => {
         let errorMessage = "Failed to delete entry. Please try again.";
         if (err.response?.status === 403) errorMessage = "You do not have permission to delete this entry.";
         else if (err.response?.status === 404) errorMessage = "Entry not found.";
+        else if (err.response?.status === 401) {
+          handleLogout();
+          return;
+        }
         alert(errorMessage);
       }
     }
   };
 
   useEffect(() => {
-    if (!entry || !token || !isOwner) return; // Only enable resizing for authenticated owners
+    if (!entry || !token || !isOwner) return;
     const containers = document.querySelectorAll(".resizable-image-container");
     containers.forEach((container) => {
       const img = container.querySelector("img");
@@ -175,7 +202,11 @@ const EntryDetail = ({ token }) => {
     });
   }, [entry, token, isOwner]);
 
-  if (!entry) return <div className="loading">Loading...</div>;
+  if (!entry) return (
+    <div className="loading">
+      <span>Loading...</span>
+    </div>
+  );
 
   return (
     <div className="app-container">
@@ -207,7 +238,7 @@ const EntryDetail = ({ token }) => {
                 {entry.photos.map((photo, index) => (
                   <img
                     key={index}
-                    src={`http://localhost:5000/${photo}`}
+                    src={`${process.env.REACT_APP_API_URL}/${photo}`}
                     alt={`${entry.title} ${index}`}
                     className="media-item"
                   />
@@ -220,7 +251,7 @@ const EntryDetail = ({ token }) => {
                   <video
                     key={index}
                     controls
-                    src={`http://localhost:5000/${video}`}
+                    src={`${process.env.REACT_APP_API_URL}/${video}`}
                     className="media-item"
                   />
                 ))}
@@ -229,7 +260,7 @@ const EntryDetail = ({ token }) => {
             {entry.audio && (
               <audio
                 controls
-                src={`http://localhost:5000/${entry.audio}`}
+                src={`${process.env.REACT_APP_API_URL}/${entry.audio}`}
                 className="audio-player"
               />
             )}
@@ -245,7 +276,7 @@ const EntryDetail = ({ token }) => {
                     Weather Conditions{" "}
                     <span className="cloud-cover-title">
                       <i className="fas fa-cloud weather-icon"></i>{" "}
-                      {entry.weather.clouds?.all || "N/A"}%
+                      {entry.weather.clouds?.all ?? "N/A"}%
                     </span>
                   </h3>
                   <div className="weather-columns">
@@ -254,39 +285,47 @@ const EntryDetail = ({ token }) => {
                         <p>
                           <i className="fas fa-cloud-sun weather-icon"></i>
                           <strong>Main:</strong>{" "}
-                          <span>{entry.weather.weather[0]?.main || "N/A"}</span>
+                          <span>{entry.weather.weather?.[0]?.main ?? "N/A"}</span>
                         </p>
                         <p>
                           <i className="fas fa-info-circle weather-icon"></i>
                           <strong>Description:</strong>{" "}
-                          <span>{entry.weather.weather[0]?.description || "N/A"}</span>
+                          <span>{entry.weather.weather?.[0]?.description ?? "N/A"}</span>
                         </p>
                         <p>
                           <i className="fas fa-thermometer-half weather-icon"></i>
                           <strong>Temperature:</strong>{" "}
                           <span>
-                            {((entry.weather.main?.temp - 273.15) * 9/5 + 32).toFixed(1)}°F
+                            {entry.weather.main?.temp
+                              ? ((entry.weather.main.temp - 273.15) * 9/5 + 32).toFixed(1) + "°F"
+                              : "N/A"}
                           </span>
                         </p>
                         <p>
                           <i className="fas fa-temperature-low weather-icon"></i>
                           <strong>Feels Like:</strong>{" "}
                           <span>
-                            {((entry.weather.main?.feels_like - 273.15) * 9/5 + 32).toFixed(1)}°F
+                            {entry.weather.main?.feels_like
+                              ? ((entry.weather.main.feels_like - 273.15) * 9/5 + 32).toFixed(1) + "°F"
+                              : "N/A"}
                           </span>
                         </p>
                         <p>
                           <i className="fas fa-temperature-down weather-icon"></i>
                           <strong>Min Temp:</strong>{" "}
                           <span>
-                            {((entry.weather.main?.temp_min - 273.15) * 9/5 + 32).toFixed(1)}°F
+                            {entry.weather.main?.temp_min
+                              ? ((entry.weather.main.temp_min - 273.15) * 9/5 + 32).toFixed(1) + "°F"
+                              : "N/A"}
                           </span>
                         </p>
                         <p>
                           <i className="fas fa-temperature-up weather-icon"></i>
                           <strong>Max Temp:</strong>{" "}
                           <span>
-                            {((entry.weather.main?.temp_max - 273.15) * 9/5 + 32).toFixed(1)}°F
+                            {entry.weather.main?.temp_max
+                              ? ((entry.weather.main.temp_max - 273.15) * 9/5 + 32).toFixed(1) + "°F"
+                              : "N/A"}
                           </span>
                         </p>
                       </div>
@@ -297,14 +336,15 @@ const EntryDetail = ({ token }) => {
                           <i className="fas fa-tachometer-alt weather-icon"></i>
                           <strong>Pressure:</strong>{" "}
                           <span>
-                            {(entry.weather.main?.pressure * 0.02953).toFixed(2) || "N/A"}{" "}
-                            inHg
+                            {entry.weather.main?.pressure
+                              ? (entry.weather.main.pressure * 0.02953).toFixed(2) + " inHg"
+                              : "N/A"}
                           </span>
                         </p>
                         <p>
                           <i className="fas fa-tint weather-icon"></i>
                           <strong>Humidity:</strong>{" "}
-                          <span>{entry.weather.main?.humidity || "N/A"}%</span>
+                          <span>{entry.weather.main?.humidity ?? "N/A"}%</span>
                         </p>
                         <p>
                           <i className="fas fa-eye weather-icon"></i>
@@ -319,16 +359,18 @@ const EntryDetail = ({ token }) => {
                           <i className="fas fa-wind weather-icon"></i>
                           <strong>Wind Speed:</strong>{" "}
                           <span>
-                            {(entry.weather.wind?.speed * 2.23694).toFixed(1) || "N/A"} mph
+                            {entry.weather.wind?.speed
+                              ? (entry.weather.wind.speed * 2.23694).toFixed(1) + " mph"
+                              : "N/A"}
                           </span>
                         </p>
                         <p>
                           <i
                             className="fas fa-compass weather-icon"
-                            style={{ transform: `rotate(${entry.weather.wind?.deg || 0}deg)` }}
+                            style={{ transform: `rotate(${entry.weather.wind?.deg ?? 0}deg)` }}
                           ></i>
                           <strong>Wind Direction:</strong>{" "}
-                          <span>{entry.weather.wind?.deg || "N/A"}°</span>
+                          <span>{entry.weather.wind?.deg ?? "N/A"}°</span>
                         </p>
                         <p>
                           <i className="fas fa-wind weather-icon wind-gust"></i>
@@ -343,6 +385,9 @@ const EntryDetail = ({ token }) => {
                     </div>
                   </div>
                 </div>
+              )}
+              {!entry.weather && (
+                <p><strong>Weather:</strong> Not available</p>
               )}
               <p><strong>Location:</strong> {entry.location || "Unknown"}</p>
               <p>

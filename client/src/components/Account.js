@@ -37,7 +37,7 @@ const Account = ({ token }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/account", {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/account`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -69,7 +69,7 @@ const Account = ({ token }) => {
 
   const fetchEntries = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/journal", {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEntries(response.data);
@@ -77,6 +77,9 @@ const Account = ({ token }) => {
     } catch (error) {
       console.error("Error fetching journal entries:", error.response?.data || error.message);
       setError("Failed to fetch journal entries");
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
     }
   };
 
@@ -91,7 +94,7 @@ const Account = ({ token }) => {
 
   const handleSave = async () => {
     try {
-      const response = await axios.put("http://localhost:5000/api/account", editData, {
+      const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/account`, editData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserData({
@@ -122,7 +125,7 @@ const Account = ({ token }) => {
 
     try {
       await axios.put(
-        "http://localhost:5000/api/account/password",
+        `${process.env.REACT_APP_API_URL}/api/account/password`,
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -130,7 +133,8 @@ const Account = ({ token }) => {
       setNewPassword("");
       setIsEditingPassword(false);
       setError(null);
-      alert("Password updated successfully");
+      alert("Password updated successfully. Please log in again.");
+      handleLogout();
     } catch (error) {
       console.error("Error updating password:", error.response?.data || error.message);
       setError(error.response?.data?.error || "Failed to update password");
@@ -157,7 +161,7 @@ const Account = ({ token }) => {
   const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This cannot be undone.")) {
       try {
-        await axios.delete("http://localhost:5000/api/account", {
+        await axios.delete(`${process.env.REACT_APP_API_URL}/api/account`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         handleLogout();
@@ -170,7 +174,7 @@ const Account = ({ token }) => {
 
   const savePreferences = async (preferences) => {
     try {
-      await axios.put("http://localhost:5000/api/account/preferences", preferences, {
+      await axios.put(`${process.env.REACT_APP_API_URL}/api/account/preferences`, preferences, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setError(null);

@@ -67,12 +67,15 @@ const MyJournal = ({ token }) => {
 
     const fetchEntries = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/journal', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setEntries(res.data);
       } catch (err) {
         console.error('Error fetching entries:', err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          handleLogout();
+        }
       }
     };
 
@@ -213,13 +216,13 @@ const MyJournal = ({ token }) => {
       };
 
       console.log('Sending request to:', editingEntry ?
-        `http://localhost:5000/api/journal/${editingEntry._id}` :
-        'http://localhost:5000/api/journal');
+        `${process.env.REACT_APP_API_URL}/api/journal/${editingEntry._id}` :
+        `${process.env.REACT_APP_API_URL}/api/journal`);
       console.log('Request config:', config);
 
       if (editingEntry) {
         res = await axios.put(
-          `http://localhost:5000/api/journal/${editingEntry._id}`,
+          `${process.env.REACT_APP_API_URL}/api/journal/${editingEntry._id}`,
           formData,
           config
         );
@@ -228,7 +231,7 @@ const MyJournal = ({ token }) => {
         ));
         setEditingEntry(null);
       } else {
-        res = await axios.post('http://localhost:5000/api/journal', formData, config);
+        res = await axios.post(`${process.env.REACT_APP_API_URL}/api/journal`, formData, config);
         setEntries([...entries, res.data]);
       }
 
@@ -252,7 +255,11 @@ const MyJournal = ({ token }) => {
           headers: err.response.headers
         } : 'No response received'
       });
-      alert(`Failed to ${editingEntry ? 'update' : 'add'} entry: ${err.response?.data?.error || err.message}`);
+      if (err.response?.status === 401) {
+        handleLogout();
+      } else {
+        alert(`Failed to ${editingEntry ? 'update' : 'add'} entry: ${err.response?.data?.error || err.message}`);
+      }
     }
   };
 

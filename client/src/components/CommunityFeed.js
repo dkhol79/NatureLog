@@ -7,12 +7,13 @@ const CommunityFeed = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [sidebarEntries, setSidebarEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const history = useHistory();
 
   useEffect(() => {
     const fetchCommunityEntries = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/journal/community', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal/community`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         setEntries(res.data);
@@ -24,7 +25,7 @@ const CommunityFeed = ({ token }) => {
     const fetchSidebarEntries = async () => {
       if (!token) return;
       try {
-        const res = await axios.get('http://localhost:5000/api/journal', {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSidebarEntries(res.data);
@@ -43,7 +44,6 @@ const CommunityFeed = ({ token }) => {
   }, [token]);
 
   const handleCardClick = (id) => {
-    // Navigate to entry details for all users
     history.push(`/entry/${id}`);
   };
 
@@ -58,7 +58,25 @@ const CommunityFeed = ({ token }) => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  const getContentPreview = (htmlContent) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+    const textContent = doc.body.textContent || '';
+    const sentences = textContent.split('.').filter(s => s.trim().length > 0);
+    const previewSentences = sentences.slice(0, 2).join('. ') + (sentences.length > 2 ? '...' : '.');
+    return previewSentences;
+  };
+
+  const filteredEntries = entries.filter(entry => {
+    const lowerSearch = search.toLowerCase();
+    return (
+      entry.title.toLowerCase().includes(lowerSearch) ||
+      entry.category?.toLowerCase().includes(lowerSearch) ||
+      entry.username?.toLowerCase().includes(lowerSearch)
+    );
+  });
+
+  if (loading) return <div className="loading">Loading...</div>;
 
   return (
     <div className="app-container">
@@ -69,36 +87,48 @@ const CommunityFeed = ({ token }) => {
         handleCardClick={handleSidebarCardClick}
       />
       <main className="main-content">
-        <div className="community-feed">
+        <div className="community-feed-container">
           <h2>Community Feed</h2>
-          <div className="entries">
-            {entries.length === 0 ? (
-              <p>No public entries yet.</p>
+          <input
+            type="text"
+            placeholder="Search by title, category, username..."
+            className="search-bar"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="entries-grid">
+            {filteredEntries.length === 0 ? (
+              <p>No public entries found.</p>
             ) : (
-              entries.map(entry => (
+              filteredEntries.map(entry => (
                 <div
                   key={entry._id}
-                  className="entry"
+                  className="entry-card"
                   onClick={() => handleCardClick(entry._id)}
                 >
-                  <p className="entry-date">
-                    {new Date(entry.timestamp).toLocaleDateString()}
-                  </p>
-                  <h3>{entry.title}</h3>
+                  <div className="entry-header">
+                    <h3>{entry.title}</h3>
+                    <p className="entry-date-time">
+                      {new Date(entry.timestamp).toLocaleDateString()} {new Date(entry.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
                   {entry.photos?.length > 0 && (
                     <img
-                      src={`http://localhost:5000/${entry.photos[0]}`}
+                      src={`${process.env.REACT_APP_API_URL}/${entry.photos[0]}`}
                       alt={entry.title}
+                      className="entry-preview-image"
                     />
                   )}
-                  <p><strong>Category:</strong> {entry.category}</p>
-                  <p>
-                    <strong>Weather:</strong>{' '}
-                    {entry.weather?.main?.temp
-                      ? `${(entry.weather.main.temp - 273.15).toFixed(1)}°C`
-                      : 'N/A'}
+                  <p className="entry-preview">
+                    {getContentPreview(entry.content)}
                   </p>
-                  <p><strong>By:</strong> {entry.username}</p>
+                  <p><strong>Category:</strong> <span>{entry.category}</span></p>
+                  <p><strong>Weather:</strong> <span>
+                    {entry.weather?.main?.temp
+                      ? `${((entry.weather.main.temp - 273.15) * 9/5 + 32).toFixed(1)}°F`
+                      : 'N/A'}
+                  </span></p>
+                  <p><strong>By:</strong> <span>{entry.username}</span></p>
                 </div>
               ))
             )}
