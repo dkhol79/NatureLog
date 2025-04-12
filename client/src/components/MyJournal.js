@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import SideNav from './SideNav';
 import TextEditor from './TextEditor';
+import JournalAssistant from './JournalAssistant';
 
 const MyJournal = ({ token }) => {
   const [entries, setEntries] = useState([]);
@@ -454,6 +455,7 @@ const MyJournal = ({ token }) => {
               placeholder="Title"
               required
             />
+            <JournalAssistant date={date} location={location} categories={categories} />
             <TextEditor
               content={content}
               setContent={setContent}

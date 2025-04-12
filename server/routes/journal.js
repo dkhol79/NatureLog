@@ -74,6 +74,53 @@ const authenticate = (req, res, next) => {
   }
 };
 
+// New endpoint for user entry metadata
+router.get('/metadata', authenticate, async (req, res) => {
+  try {
+    const entries = await Journal.find({ userId: req.user.id }).select(
+      'category location geolocation weather plantsObserved animalsObserved'
+    );
+
+    // Summarize category counts
+    const categoryCounts = entries.reduce((acc, entry) => {
+      acc[entry.category] = (acc[entry.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Collect unique locations
+    const locations = [...new Set(entries.map(entry => entry.location).filter(Boolean))];
+
+    // Collect species observed
+    const species = [
+      ...entries.flatMap(entry =>
+        entry.plantsObserved.map(plant => plant.commonName).filter(Boolean)
+      ),
+      ...entries.flatMap(entry =>
+        entry.animalsObserved.map(animal => animal.commonName).filter(Boolean)
+      ),
+    ];
+
+    // Get latest weather data (if available)
+    const latestEntryWithWeather = entries.find(entry => entry.weather?.main?.temp);
+    const weatherData = latestEntryWithWeather?.weather || null;
+
+    res.json({
+      entries: entries.map(entry => ({
+        category: entry.category,
+        location: entry.location,
+        geolocation: entry.geolocation,
+      })),
+      categoryCounts,
+      locations,
+      species,
+      weatherData,
+    });
+  } catch (err) {
+    console.error('Error fetching journal metadata:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
   const { title, content, category, lat, lng, location, isPublic, date, plantsObserved, animalsObserved } = req.body;
 
@@ -136,14 +183,14 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     commonName: plant.commonName,
     scientificName: plant.scientificName,
     photo: plantPhotoPaths[index] || plant.photo || null,
-    notes: plant.notes || '', // Include notes
+    notes: plant.notes || '',
   }));
 
   const animalsWithPhotos = animals.map((animal, index) => ({
     commonName: animal.commonName,
     scientificName: animal.scientificName,
     photo: animalPhotoPaths[index] || animal.photo || null,
-    notes: animal.notes || '', // Include notes
+    notes: animal.notes || '',
   }));
 
   const entry = new Journal({
@@ -266,7 +313,7 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
           commonName: plant.commonName,
           scientificName: plant.scientificName,
           photo: plantPhotoPaths[index] || plant.photo || existingEntry.plantsObserved[index]?.photo || null,
-          notes: plant.notes || existingEntry.plantsObserved[index]?.notes || '', // Preserve or update notes
+          notes: plant.notes || existingEntry.plantsObserved[index]?.notes || '',
         }));
       } catch (err) {
         console.error('Error parsing plantsObserved:', err.message);
@@ -284,7 +331,7 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
           commonName: animal.commonName,
           scientificName: animal.scientificName,
           photo: animalPhotoPaths[index] || animal.photo || existingEntry.animalsObserved[index]?.photo || null,
-          notes: animal.notes || existingEntry.animalsObserved[index]?.notes || '', // Preserve or update notes
+          notes: animal.notes || existingEntry.animalsObserved[index]?.notes || '',
         }));
       } catch (err) {
         console.error('Error parsing animalsObserved:', err.message);

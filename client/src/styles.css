@@ -923,6 +923,99 @@ body {
   color: #a0aec0;
 }
 
+/* Journal Assistant (Bubble Chat) */
+.journal-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+  align-items: flex-start;
+  max-width: 80%;
+}
+
+.chat-bubble {
+  position: relative;
+  background: #f7fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin-left: 20px;
+}
+
+.chat-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Speech bubble tail */
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 20px;
+  width: 0;
+  height: 0;
+  border-right: 10px solid #f7fafc;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  filter: drop-shadow(-1px 0 0 #edf2f7);
+}
+
+.chat-message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.chat-message strong {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.inspiration-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inspiration-buttons button {
+  padding: 8px 16px;
+  background: #ffffff;
+  color: #718096;
+  border: 1px solid #edf2f7;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.inspiration-buttons button:hover {
+  background: #e2e8f0;
+  color: #3182ce;
+  border-color: #3182ce;
+  transform: translateY(-1px);
+}
+
+.inspiration-buttons button.selected {
+  background: #3182ce;
+  color: #ffffff;
+  border-color: #3182ce;
+}
+
+/* Prompt bubble (slightly different styling to distinguish it) */
+.prompt-bubble {
+  background: #ffffff;
+  margin-left: 40px;
+}
+
+.prompt-bubble::before {
+  border-right-color: #ffffff;
+}
+
 /* Entry Detail Styles */
 .entry-detail-container {
   background: #ffffff;
