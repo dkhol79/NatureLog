@@ -20,12 +20,44 @@ const MyJournal = ({ token }) => {
   const [audio, setAudio] = useState(null);
   const [date, setDate] = useState(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
   const [editingEntry, setEditingEntry] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [plantsObserved, setPlantsObserved] = useState([]);
+  const [animalsObserved, setAnimalsObserved] = useState([]);
+  const [plantSearch, setPlantSearch] = useState('');
+  const [animalSearch, setAnimalSearch] = useState('');
+  const [plantSuggestions, setPlantSuggestions] = useState([]);
+  const [animalSuggestions, setAnimalSuggestions] = useState([]);
   const history = useHistory();
   const editorRef = useRef(null);
 
   const categories = [
     'Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies',
   ];
+
+  const defaultPlantImage = 'https://via.placeholder.com/150?text=Plant';
+  const defaultAnimalImage = 'https://via.placeholder.com/150?text=Animal';
+
+  // Function to reset all form fields
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setCategory('Wildlife');
+    setLocation('');
+    setLocationData({ lat: '', lng: '', address: '' });
+    setIsPublic(false);
+    setPhotos([]);
+    setVideos([]);
+    setAudio(null);
+    setDate(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
+    setPlantsObserved([]);
+    setAnimalsObserved([]);
+    setWeather(null);
+    setPlantSearch('');
+    setAnimalSearch('');
+    setPlantSuggestions([]);
+    setAnimalSuggestions([]);
+    if (editorRef.current) editorRef.current.innerHTML = '';
+  };
 
   useEffect(() => {
     if (!token) {
@@ -81,6 +113,108 @@ const MyJournal = ({ token }) => {
 
     fetchEntries();
   }, [token, history]);
+
+  const handlePlantSearch = async (e) => {
+    const query = e.target.value;
+    setPlantSearch(query);
+    if (query.length > 2) {
+      try {
+        const response = await axios.get(
+          `https://api.inaturalist.org/v1/taxa/autocomplete?q=${encodeURIComponent(query)}&taxon_id=47126`
+        );
+        setPlantSuggestions(response.data.results.slice(0, 5));
+      } catch (err) {
+        console.error('Plant search error:', err);
+        setPlantSuggestions([]);
+      }
+    } else {
+      setPlantSuggestions([]);
+    }
+  };
+
+  const handleAnimalSearch = async (e) => {
+    const query = e.target.value;
+    setAnimalSearch(query);
+    if (query.length > 2) {
+      try {
+        const response = await axios.get(
+          `https://api.inaturalist.org/v1/taxa/autocomplete?q=${encodeURIComponent(query)}&taxon_id=1`
+        );
+        setAnimalSuggestions(response.data.results.slice(0, 5));
+      } catch (err) {
+        console.error('Animal search error:', err);
+        setAnimalSuggestions([]);
+      }
+    } else {
+      setAnimalSuggestions([]);
+    }
+  };
+
+  const handlePlantSelect = (taxon) => {
+    const newPlant = {
+      commonName: taxon.preferred_common_name || taxon.name,
+      scientificName: taxon.name,
+      photo: taxon.default_photo?.medium_url || defaultPlantImage,
+      customPhoto: null,
+      notes: '',
+    };
+    setPlantsObserved([...plantsObserved, newPlant]);
+    setPlantSearch('');
+    setPlantSuggestions([]);
+  };
+
+  const handleAnimalSelect = (taxon) => {
+    const newAnimal = {
+      commonName: taxon.preferred_common_name || taxon.name,
+      scientificName: taxon.name,
+      photo: taxon.default_photo?.medium_url || defaultAnimalImage,
+      customPhoto: null,
+      notes: '',
+    };
+    setAnimalsObserved([...animalsObserved, newAnimal]);
+    setAnimalSearch('');
+    setAnimalSuggestions([]);
+  };
+
+  const handlePlantPhotoUpload = (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const updatedPlants = [...plantsObserved];
+      updatedPlants[index].customPhoto = file;
+      updatedPlants[index].photo = URL.createObjectURL(file);
+      setPlantsObserved(updatedPlants);
+    }
+  };
+
+  const handleAnimalPhotoUpload = (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const updatedAnimals = [...animalsObserved];
+      updatedAnimals[index].customPhoto = file;
+      updatedAnimals[index].photo = URL.createObjectURL(file);
+      setAnimalsObserved(updatedAnimals);
+    }
+  };
+
+  const handlePlantNotesChange = (index, e) => {
+    const updatedPlants = [...plantsObserved];
+    updatedPlants[index].notes = e.target.value;
+    setPlantsObserved(updatedPlants);
+  };
+
+  const handleAnimalNotesChange = (index, e) => {
+    const updatedAnimals = [...animalsObserved];
+    updatedAnimals[index].notes = e.target.value;
+    setAnimalsObserved(updatedAnimals);
+  };
+
+  const removePlant = (index) => {
+    setPlantsObserved(plantsObserved.filter((_, i) => i !== index));
+  };
+
+  const removeAnimal = (index) => {
+    setAnimalsObserved(animalsObserved.filter((_, i) => i !== index));
+  };
 
   const handleLocationChange = async (e) => {
     const newLocation = e.target.value;
@@ -153,6 +287,9 @@ const MyJournal = ({ token }) => {
     });
     setIsPublic(entry.isPublic);
     setDate(entry.date);
+    setWeather(entry.weather);
+    setPlantsObserved(entry.plantsObserved || []);
+    setAnimalsObserved(entry.animalsObserved || []);
     if (entry.photos) setPhotos(entry.photos.map(photo => photo));
     if (entry.videos) setVideos(entry.videos.map(video => video));
     if (entry.audio) setAudio(entry.audio);
@@ -177,6 +314,31 @@ const MyJournal = ({ token }) => {
       formData.append('lat', parseFloat(locationData.lat));
       formData.append('lng', parseFloat(locationData.lng));
     }
+    if (editingEntry && weather) {
+      formData.append('weather', JSON.stringify(weather));
+    }
+    formData.append('plantsObserved', JSON.stringify(plantsObserved.map(plant => ({
+      commonName: plant.commonName,
+      scientificName: plant.scientificName,
+      photo: plant.customPhoto ? undefined : plant.photo,
+      notes: plant.notes || '',
+    }))));
+    formData.append('animalsObserved', JSON.stringify(animalsObserved.map(animal => ({
+      commonName: animal.commonName,
+      scientificName: animal.scientificName,
+      photo: animal.customPhoto ? undefined : animal.photo,
+      notes: animal.notes || '',
+    }))));
+    plantsObserved.forEach((plant, index) => {
+      if (plant.customPhoto instanceof File) {
+        formData.append(`plantPhotos`, plant.customPhoto);
+      }
+    });
+    animalsObserved.forEach((animal, index) => {
+      if (animal.customPhoto instanceof File) {
+        formData.append(`animalPhotos`, animal.customPhoto);
+      }
+    });
 
     if (photos.length > 0) {
       photos.forEach((photo, index) => {
@@ -237,15 +399,9 @@ const MyJournal = ({ token }) => {
 
       console.log('Response:', res.data);
 
-      setTitle('');
-      setContent('');
-      setIsPublic(false);
-      setPhotos([]);
-      setVideos([]);
-      setAudio(null);
-      setDate(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
-      setLocation('');
-      setLocationData({ lat: '', lng: '', address: '' });
+      // Reset form after successful submission
+      resetForm();
+      setEditingEntry(null);
     } catch (err) {
       console.error('Submission error:', {
         message: err.message,
@@ -345,6 +501,106 @@ const MyJournal = ({ token }) => {
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
+            <div className="observation-container">
+              <h3>Plants Observed (Flowers, Mushrooms, Algae, etc.)</h3>
+              <input
+                type="text"
+                value={plantSearch}
+                onChange={handlePlantSearch}
+                placeholder="Search for a plant..."
+                autoComplete="off"
+              />
+              {plantSuggestions.length > 0 && (
+                <ul className="suggestions">
+                  {plantSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      onClick={() => handlePlantSelect(suggestion)}
+                      className="suggestion-item"
+                    >
+                      {suggestion.preferred_common_name || suggestion.name} ({suggestion.name})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {plantsObserved.length > 0 && (
+                <div className="observed-list">
+                  {plantsObserved.map((plant, index) => (
+                    <div key={index} className="observed-item">
+                      <img src={plant.photo} alt={plant.commonName} />
+                      <div className="observed-item-details">
+                        <p><strong>Common Name:</strong> {plant.commonName}</p>
+                        <p><strong>Scientific Name:</strong> {plant.scientificName}</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handlePlantPhotoUpload(index, e)}
+                      />
+                      <button type="button" onClick={() => removePlant(index)}>Remove</button>
+                      <div className="observed-item-notes">
+                        <input
+                          type="text"
+                          value={plant.notes}
+                          onChange={(e) => handlePlantNotesChange(index, e)}
+                          placeholder="Add notes about this plant..."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="observation-container">
+              <h3>Animals Observed (Insects, Fish, etc.)</h3>
+              <input
+                type="text"
+                value={animalSearch}
+                onChange={handleAnimalSearch}
+                placeholder="Search for an animal..."
+                autoComplete="off"
+              />
+              {animalSuggestions.length > 0 && (
+                <ul className="suggestions">
+                  {animalSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      onClick={() => handleAnimalSelect(suggestion)}
+                      className="suggestion-item"
+                    >
+                      {suggestion.preferred_common_name || suggestion.name} ({suggestion.name})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {animalsObserved.length > 0 && (
+                <div className="observed-list">
+                  {animalsObserved.map((animal, index) => (
+                    <div key={index} className="observed-item">
+                      <img src={animal.photo} alt={animal.commonName} />
+                      <div className="observed-item-details">
+                        <p><strong>Common Name:</strong> {animal.commonName}</p>
+                        <p><strong>Scientific Name:</strong> {animal.scientificName}</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleAnimalPhotoUpload(index, e)}
+                      />
+                      <button type="button" onClick={() => removeAnimal(index)}>Remove</button>
+                      <div className="observed-item-notes">
+                        <input
+                          type="text"
+                          value={animal.notes}
+                          onChange={(e) => handleAnimalNotesChange(index, e)}
+                          placeholder="Add notes about this animal..."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <label>
               <input
                 type="checkbox"
@@ -358,7 +614,10 @@ const MyJournal = ({ token }) => {
               {editingEntry && (
                 <button
                   type="button"
-                  onClick={() => setEditingEntry(null)}
+                  onClick={() => {
+                    resetForm();
+                    setEditingEntry(null);
+                  }}
                   className="cancel-edit-btn"
                 >
                   Cancel Edit

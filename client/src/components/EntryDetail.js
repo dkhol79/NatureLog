@@ -10,6 +10,8 @@ const EntryDetail = ({ token }) => {
   const [isOwner, setIsOwner] = useState(false);
   const { id } = useParams();
   const history = useHistory();
+  const [activePlant, setActivePlant] = useState(null);
+  const [activeAnimal, setActiveAnimal] = useState(null);
 
   useEffect(() => {
     const fetchEntry = async () => {
@@ -19,11 +21,9 @@ const EntryDetail = ({ token }) => {
         setEntry(res.data);
 
         if (token) {
-          // Fetch current user data to get their ID
           const accountRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/account`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          // Compare current user's ID with entry's userId
           setIsOwner(accountRes.data._id === res.data.userId);
         }
       } catch (err) {
@@ -123,7 +123,10 @@ const EntryDetail = ({ token }) => {
       return;
     }
     const editableContent = prepareContentForEditing(entry.content);
-    history.push("/journal", { entryToEdit: { ...entry, content: editableContent } });
+    history.push({
+      pathname: "/journal",
+      state: { entryToEdit: { ...entry, content: editableContent } }
+    });
   };
 
   const handleDelete = async () => {
@@ -268,6 +271,88 @@ const EntryDetail = ({ token }) => {
               className="description"
               dangerouslySetInnerHTML={{ __html: stripContentEditable(entry.content) }}
             />
+            {(entry.plantsObserved?.length > 0 || entry.animalsObserved?.length > 0) && (
+              <div className="observations-tabs">
+                <div className="observations-column">
+                  <h3>Plants Observed</h3>
+                  {entry.plantsObserved?.length > 0 ? (
+                    entry.plantsObserved.map((plant, index) => (
+                      <div
+                        key={index}
+                        className={`observation-item ${activePlant === index ? 'expanded' : ''}`}
+                        onClick={() => setActivePlant(activePlant === index ? null : index)}
+                      >
+                        <div className="observation-item-content">
+                          <img
+                            src={
+                              plant.photo?.startsWith('http')
+                                ? plant.photo
+                                : `${process.env.REACT_APP_API_URL}/${plant.photo}`
+                            }
+                            alt={plant.commonName}
+                            className="observation-image"
+                          />
+                          <div className="observation-details">
+                            <p><strong>Common Name:</strong> {plant.commonName}</p>
+                            <p><strong>Scientific Name:</strong> {plant.scientificName}</p>
+                          </div>
+                        </div>
+                        {activePlant === index && (
+                          <div className="expanded-content">
+                            {plant.notes ? (
+                              <p className="expanded-notes"><strong>Notes:</strong> {plant.notes}</p>
+                            ) : (
+                              <p className="expanded-notes">No notes available.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No plants recorded.</p>
+                  )}
+                </div>
+                <div className="observations-column">
+                  <h3>Animals Observed</h3>
+                  {entry.animalsObserved?.length > 0 ? (
+                    entry.animalsObserved.map((animal, index) => (
+                      <div
+                        key={index}
+                        className={`observation-item ${activeAnimal === index ? 'expanded' : ''}`}
+                        onClick={() => setActiveAnimal(activeAnimal === index ? null : index)}
+                      >
+                        <div className="observation-item-content">
+                          <img
+                            src={
+                              animal.photo?.startsWith('http')
+                                ? animal.photo
+                                : `${process.env.REACT_APP_API_URL}/${animal.photo}`
+                            }
+                            alt={animal.commonName}
+                            className="observation-image"
+                          />
+                          <div className="observation-details">
+                            <p><strong>Common Name:</strong> {animal.commonName}</p>
+                            <p><strong>Scientific Name:</strong> {animal.scientificName}</p>
+                          </div>
+                        </div>
+                        {activeAnimal === index && (
+                          <div className="expanded-content">
+                            {animal.notes ? (
+                              <p className="expanded-notes"><strong>Notes:</strong> {animal.notes}</p>
+                            ) : (
+                              <p className="expanded-notes">No notes available.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No animals recorded.</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="entry-meta">
               <p><strong>Category:</strong> {entry.category}</p>
               {entry.weather && (

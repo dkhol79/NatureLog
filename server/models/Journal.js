@@ -11,8 +11,8 @@ const journalSchema = new mongoose.Schema({
     enum: ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'],
   },
   geolocation: {
-    lat: { type: Number, default: null },  // Added default value
-    lng: { type: Number, default: null },  // Added default value
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
   },
   location: { type: String, required: true },
   weather: { type: Object, default: { main: { temp: 'N/A' } } },
@@ -22,6 +22,18 @@ const journalSchema = new mongoose.Schema({
   photos: [{ type: String }],
   videos: [{ type: String }],
   audio: { type: String },
+  plantsObserved: [{
+    commonName: { type: String, required: true },
+    scientificName: { type: String, required: true },
+    photo: { type: String },
+    notes: { type: String, default: '' },
+  }],
+  animalsObserved: [{
+    commonName: { type: String, required: true },
+    scientificName: { type: String, required: true },
+    photo: { type: String },
+    notes: { type: String, default: '' },
+  }],
 });
 
 // Add indexes for better query performance

@@ -36,6 +36,8 @@ const uploadFields = [
   { name: 'photos', maxCount: 5 },
   { name: 'videos', maxCount: 2 },
   { name: 'audio', maxCount: 1 },
+  { name: 'plantPhotos', maxCount: 10 },
+  { name: 'animalPhotos', maxCount: 10 },
 ];
 
 const parseTownState = (address) => {
@@ -73,7 +75,7 @@ const authenticate = (req, res, next) => {
 };
 
 router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
-  const { title, content, category, lat, lng, location, isPublic, date } = req.body;
+  const { title, content, category, lat, lng, location, isPublic, date, plantsObserved, animalsObserved } = req.body;
 
   console.log('POST /api/journal - Request body:', req.body);
   console.log('POST /api/journal - Uploaded files:', req.files);
@@ -92,7 +94,7 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
   let weatherData = null;
   if (lat && lng) {
     try {
-      const apiKey = process.env.OPENWEATHER_API_KEY;
+      const apiKey = process.env.OPENWEATHER_API_KEY || '3479fe09a904e4d13a8efb534ee2664d';
       if (!apiKey) {
         console.error('OpenWeather API key is missing');
         weatherData = null;
@@ -117,6 +119,33 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
 
   const parsedLocation = parseTownState(location);
 
+  let plants = [];
+  let animals = [];
+  try {
+    plants = plantsObserved ? JSON.parse(plantsObserved) : [];
+    animals = animalsObserved ? JSON.parse(animalsObserved) : [];
+  } catch (err) {
+    console.error('Error parsing plantsObserved or animalsObserved:', err.message);
+    return res.status(400).json({ error: 'Invalid plantsObserved or animalsObserved data' });
+  }
+
+  const plantPhotoPaths = req.files?.plantPhotos?.map(f => f.path) || [];
+  const animalPhotoPaths = req.files?.animalPhotos?.map(f => f.path) || [];
+
+  const plantsWithPhotos = plants.map((plant, index) => ({
+    commonName: plant.commonName,
+    scientificName: plant.scientificName,
+    photo: plantPhotoPaths[index] || plant.photo || null,
+    notes: plant.notes || '', // Include notes
+  }));
+
+  const animalsWithPhotos = animals.map((animal, index) => ({
+    commonName: animal.commonName,
+    scientificName: animal.scientificName,
+    photo: animalPhotoPaths[index] || animal.photo || null,
+    notes: animal.notes || '', // Include notes
+  }));
+
   const entry = new Journal({
     userId: req.user.id,
     title,
@@ -132,6 +161,8 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     videos: req.files?.videos?.map(f => f.path) || [],
     audio: req.files?.audio?.[0]?.path || null,
     date,
+    plantsObserved: plantsWithPhotos,
+    animalsObserved: animalsWithPhotos,
   });
 
   try {
@@ -191,7 +222,6 @@ router.get('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // Convert entry to JSON and ensure userId is a string
     const entryJson = entry.toJSON();
     entryJson.userId = entry.userId._id.toString();
     entryJson.username = entry.userId.username;
@@ -204,7 +234,7 @@ router.get('/:id', async (req, res) => {
 });
 
 router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) => {
-  const { title, content, category, location, isPublic, date, lat, lng } = req.body;
+  const { title, content, category, location, isPublic, date, lat, lng, plantsObserved, animalsObserved } = req.body;
 
   const validCategories = ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'];
 
@@ -228,13 +258,49 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
     if (isPublic !== undefined) updateData.isPublic = isPublic === 'true';
     if (date) updateData.date = date;
 
+    if (plantsObserved) {
+      try {
+        const plants = JSON.parse(plantsObserved);
+        const plantPhotoPaths = req.files?.plantPhotos?.map(f => f.path) || [];
+        updateData.plantsObserved = plants.map((plant, index) => ({
+          commonName: plant.commonName,
+          scientificName: plant.scientificName,
+          photo: plantPhotoPaths[index] || plant.photo || existingEntry.plantsObserved[index]?.photo || null,
+          notes: plant.notes || existingEntry.plantsObserved[index]?.notes || '', // Preserve or update notes
+        }));
+      } catch (err) {
+        console.error('Error parsing plantsObserved:', err.message);
+        return res.status(400).json({ error: 'Invalid plantsObserved data' });
+      }
+    } else {
+      updateData.plantsObserved = existingEntry.plantsObserved;
+    }
+
+    if (animalsObserved) {
+      try {
+        const animals = JSON.parse(animalsObserved);
+        const animalPhotoPaths = req.files?.animalPhotos?.map(f => f.path) || [];
+        updateData.animalsObserved = animals.map((animal, index) => ({
+          commonName: animal.commonName,
+          scientificName: animal.scientificName,
+          photo: animalPhotoPaths[index] || animal.photo || existingEntry.animalsObserved[index]?.photo || null,
+          notes: animal.notes || existingEntry.animalsObserved[index]?.notes || '', // Preserve or update notes
+        }));
+      } catch (err) {
+        console.error('Error parsing animalsObserved:', err.message);
+        return res.status(400).json({ error: 'Invalid animalsObserved data' });
+      }
+    } else {
+      updateData.animalsObserved = existingEntry.animalsObserved;
+    }
+
     if (lat && lng) {
       updateData.geolocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
       try {
         const apiKey = process.env.OPENWEATHER_API_KEY;
         if (!apiKey) {
           console.error('OpenWeather API key is missing');
-          updateData.weather = null;
+          updateData.weather = existingEntry.weather;
         } else {
           const response = await axios.get(
             `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}`
@@ -243,9 +309,10 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
         }
       } catch (err) {
         console.error('Weather API error during update:', err.message);
-        updateData.weather = null;
+        updateData.weather = existingEntry.weather;
       }
     } else {
+      updateData.geolocation = existingEntry.geolocation;
       updateData.weather = existingEntry.weather;
     }
 

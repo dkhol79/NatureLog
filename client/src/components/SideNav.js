@@ -33,7 +33,7 @@ const SideNav = ({
           </button>
           <button
             className="sidebar-btn"
-            onClick={() => history.push('/register')}
+            onClick={() => history.push('/register')} // Fixed to navigate to /register
           >
             Sign Up
           </button>
