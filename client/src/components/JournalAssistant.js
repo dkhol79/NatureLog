@@ -251,7 +251,7 @@ const JournalAssistant = ({ date, location, categories, token }) => {
 
     // Refine with DeepAI for polish, but keep it natural
     try {
-      const apiInput = `Make this journal prompt vivid, immersive, and conversational, like a friend sharing a story idea. Keep it 200-300 words and avoid formal phrasing: "${generatedPrompt}"`;
+      const apiInput = `Make this journal prompt vivid, immersive, and conversational, like a friend sharing a story idea. Make a fun joke or a witty comment. Keep it 200-300 words and avoid dashes and formal phrasing: "${generatedPrompt}"`;
       const response = await axios.post(
         'https://api.deepai.org/api/text-generator',
         { text: apiInput },
@@ -272,10 +272,14 @@ const JournalAssistant = ({ date, location, categories, token }) => {
 
   // Initialize greeting and fetch user data
   useEffect(() => {
-    if (!token) return;
+    // Set greeting immediately
     setGreeting(getGreeting());
-    fetchUserData();
-  }, [token]);
+
+    // Fetch user data only if token is provided
+    if (token) {
+      fetchUserData();
+    }
+  }, [token]); // Keep token as dependency for fetchUserData
 
   // Handle inspiration choice
   const handleInspirationChoice = (choice) => {
