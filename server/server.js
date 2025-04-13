@@ -7,6 +7,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const journalRoutes = require('./routes/journal');
 const accountRoutes = require('./routes/account');
+const communitiesRoutes = require('./routes/communities');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 
@@ -28,12 +30,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/journal', journalRoutes);
 app.use('/api/account', accountRoutes);
+app.use('/api/communities', communitiesRoutes);
+app.use('/api/users', usersRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

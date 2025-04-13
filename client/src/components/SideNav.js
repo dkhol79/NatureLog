@@ -76,6 +76,12 @@ const SideNav = ({
           <i className="fa fa-list"></i> My Entries
         </button>
         <button
+          className={`sidebar-btn ${currentPath === '/my-communities' ? 'active' : ''}`}
+          onClick={() => history.push('/my-communities')}
+        >
+          <i className="fa fa-layer-group"></i> My Communities
+        </button>
+        <button
           className="logout-btn"
           onClick={onLogoutClick}
         >

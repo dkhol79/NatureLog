@@ -188,6 +188,14 @@ const Account = ({ token }) => {
     history.push(`/entry/${entryId}`);
   };
 
+  const handleCreateCommunity = () => {
+    history.push('/community-create');
+  };
+
+  const handleViewCommunities = () => {
+    history.push('/my-communities');
+  };
+
   if (!token) return null;
 
   return (
@@ -309,6 +317,16 @@ const Account = ({ token }) => {
                 </div>
               </form>
             )}
+          </section>
+
+          <section className="community-management">
+            <h3>Community Management</h3>
+            <div className="form-grid">
+              <div className="button-group">
+                <button onClick={handleCreateCommunity}>Create New Community</button>
+                <button onClick={handleViewCommunities}>View My Communities</button>
+              </div>
+            </div>
           </section>
 
           <section className="preferences">

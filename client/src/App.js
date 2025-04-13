@@ -6,6 +6,10 @@ import CommunityFeed from './components/CommunityFeed';
 import EntryDetail from './components/EntryDetail';
 import Account from './components/Account';
 import MyEntries from './components/MyEntries';
+import CommunityCreate from './components/CommunityCreate';
+import MyCommunities from './components/MyCommunities';
+import CommunityDetail from './components/CommunityDetail';
+import CommunityManage from './components/CommunityManage';
 
 const App = () => {
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
@@ -37,6 +41,18 @@ const App = () => {
         </Route>
         <Route path="/my-entries">
           {token ? <MyEntries token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/community-create">
+          {token ? <CommunityCreate token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/my-communities">
+          {token ? <MyCommunities token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/community-manage/:id">
+          {token ? <CommunityManage token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/community/:id">
+          {token ? <CommunityDetail token={token} /> : <CommunityFeed token={null} />}
         </Route>
         <Route path="/">
           <CommunityFeed token={token} />
