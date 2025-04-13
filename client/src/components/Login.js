@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
-import '../styles.css';
+import Logo from '../assets/NatureLog-Logo.png';
 
 const Login = ({ setToken, isRegisterDefault = false }) => {
   const [email, setEmail] = useState('');
@@ -30,36 +30,51 @@ const Login = ({ setToken, isRegisterDefault = false }) => {
   };
 
   return (
-    <div className="login">
+    <div className="login-container">
+      <div className="login-header">
+        <img src={Logo} alt="NatureLog Logo" className="login-logo" />
+      </div>
       <h2>{isRegister ? 'Register' : 'Login'}</h2>
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {isRegister && (
+        <div className="form-group">
+          <label htmlFor="email">Email</label>
           <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            id="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {isRegister && (
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              placeholder="Choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
         )}
         <button type="submit">{isRegister ? 'Register' : 'Login'}</button>
       </form>
-      <button onClick={() => setIsRegister(!isRegister)}>
+      <button className="switch-button" onClick={() => setIsRegister(!isRegister)}>
         {isRegister ? 'Switch to Login' : 'Switch to Register'}
       </button>
     </div>

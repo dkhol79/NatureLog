@@ -210,6 +210,7 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     date,
     plantsObserved: plantsWithPhotos,
     animalsObserved: animalsWithPhotos,
+    comments: [],
   });
 
   try {
@@ -402,6 +403,80 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Error deleting journal:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to delete journal entry' });
+  }
+});
+
+// New route to add a comment
+router.post('/:id/comments', authenticate, async (req, res) => {
+  const { content } = req.body;
+
+  if (!content) {
+    return res.status(400).json({ error: 'Comment content is required' });
+  }
+
+  try {
+    const entry = await Journal.findById(req.params.id);
+    if (!entry) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    if (!entry.isPublic) {
+      return res.status(403).json({ error: 'Comments are only allowed on public entries' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const newComment = {
+      userId: req.user.id,
+      username: user.username,
+      content,
+      createdAt: new Date(),
+    };
+
+    entry.comments.push(newComment);
+    await entry.save();
+
+    res.status(201).json(newComment);
+  } catch (err) {
+    console.error('Error adding comment:', err);
+    res.status(500).json({ error: 'Failed to add comment' });
+  }
+});
+
+// New route to edit a comment
+router.put('/:id/comments/:commentId', authenticate, async (req, res) => {
+  const { content } = req.body;
+
+  if (!content) {
+    return res.status(400).json({ error: 'Comment content is required' });
+  }
+
+  try {
+    const entry = await Journal.findById(req.params.id);
+    if (!entry) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    const comment = entry.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    if (comment.userId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'You can only edit your own comments' });
+    }
+
+    comment.content = content;
+    comment.updatedAt = new Date();
+    await entry.save();
+
+    res.json(comment);
+  } catch (err) {
+    console.error('Error updating comment:', err);
+    res.status(500).json({ error: 'Failed to update comment' });
   }
 });
 

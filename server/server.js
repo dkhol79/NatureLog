@@ -19,9 +19,9 @@ mongoose.connect(process.env.MONGODB_URI)
 const corsOptions = {
   origin: [
     'http://localhost:80',
-    'https://asthma-options-venture-console.trycloudflare.com',
+    'https://invest-deadly-it-essays.trycloudflare.com',
   ],
-  credentials: true, // If you plan to use cookies or auth headers
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };

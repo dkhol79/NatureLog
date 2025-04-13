@@ -8,10 +8,14 @@ const EntryDetail = ({ token }) => {
   const [entry, setEntry] = useState(null);
   const [entries, setEntries] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const { id } = useParams();
   const history = useHistory();
   const [activePlant, setActivePlant] = useState(null);
   const [activeAnimal, setActiveAnimal] = useState(null);
+  const [commentContent, setCommentContent] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
 
   useEffect(() => {
     const fetchEntry = async () => {
@@ -24,6 +28,7 @@ const EntryDetail = ({ token }) => {
           const accountRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/account`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+          setCurrentUserId(accountRes.data._id);
           setIsOwner(accountRes.data._id === res.data.userId);
         }
       } catch (err) {
@@ -157,6 +162,79 @@ const EntryDetail = ({ token }) => {
         alert(errorMessage);
       }
     }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      alert("Please log in to add a comment.");
+      history.push("/login");
+      return;
+    }
+    if (!commentContent.trim()) {
+      alert("Comment cannot be empty.");
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/journal/${id}/comments`,
+        { content: commentContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEntry({
+        ...entry,
+        comments: [...(entry.comments || []), res.data]
+      });
+      setCommentContent("");
+    } catch (err) {
+      console.error("Error adding comment:", err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        handleLogout();
+      } else {
+        alert(err.response?.data?.error || "Failed to add comment.");
+      }
+    }
+  };
+
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment._id);
+    setEditingCommentContent(comment.content);
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editingCommentContent.trim()) {
+      alert("Comment cannot be empty.");
+      return;
+    }
+
+    try {
+      const res = await axios.put(
+        `${process.env.REACT_APP_API_URL}/api/journal/${id}/comments/${commentId}`,
+        { content: editingCommentContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEntry({
+        ...entry,
+        comments: entry.comments.map((c) =>
+          c._id === commentId ? { ...c, ...res.data } : c
+        ),
+      });
+      setEditingCommentId(null);
+      setEditingCommentContent("");
+    } catch (err) {
+      console.error("Error updating comment:", err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        handleLogout();
+      } else {
+        alert(err.response?.data?.error || "Failed to update comment.");
+      }
+    }
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent("");
   };
 
   useEffect(() => {
@@ -492,6 +570,74 @@ const EntryDetail = ({ token }) => {
               <button onClick={handleDelete} className="delete-btn">
                 Delete
               </button>
+            )}
+            {entry.isPublic && (
+              <div className="comments-section">
+                <h3>Comments</h3>
+                {entry.comments?.length > 0 ? (
+                  <div className="comments-list">
+                    {entry.comments.map((comment) => (
+                      <div key={comment._id} className="comment-item">
+                        <p>
+                          <strong>{comment.username}</strong> (
+                          {new Date(comment.createdAt).toLocaleDateString()}{" "}
+                          {new Date(comment.createdAt).toLocaleTimeString()}
+                          {comment.updatedAt && " (Edited)"}
+                          )
+                        </p>
+                        {editingCommentId === comment._id ? (
+                          <div className="edit-comment-form">
+                            <textarea
+                              value={editingCommentContent}
+                              onChange={(e) => setEditingCommentContent(e.target.value)}
+                              placeholder="Edit your comment..."
+                            />
+                            <div className="comment-actions">
+                              <button
+                                onClick={() => handleUpdateComment(comment._id)}
+                                className="save-comment-btn"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={cancelEditComment}
+                                className="cancel-comment-btn"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>{comment.content}</p>
+                        )}
+                        {token && comment.userId === currentUserId && (
+                          <button
+                            onClick={() => handleEditComment(comment)}
+                            className="edit-comment-btn"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No comments yet.</p>
+                )}
+                {token && (
+                  <form onSubmit={handleAddComment} className="add-comment-form">
+                    <textarea
+                      value={commentContent}
+                      onChange={(e) => setCommentContent(e.target.value)}
+                      placeholder="Add a comment..."
+                      rows="4"
+                    />
+                    <button type="submit" className="submit-comment-btn">
+                      Submit Comment
+                    </button>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         </div>

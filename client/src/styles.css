@@ -1162,7 +1162,6 @@ body {
   padding: 20px;
   background: #f7fafc;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .observations-column {
@@ -1170,8 +1169,8 @@ body {
 }
 
 .observations-column h3 {
-  font-size: 1.6rem;
-  color: #1a202c;
+  font-size: 1.4rem;
+  color: #236ad3;
   font-weight: 700;
   margin-bottom: 20px;
   padding-bottom: 10px;
@@ -1373,6 +1372,165 @@ body {
   text-align: right;
   font-weight: 500;
   color: #666;
+}
+
+/* Comments Section */
+.comments-section {
+  margin-top: 30px;
+  padding: 25px;
+  background: #f7fafc;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #edf2f7;
+  transition: box-shadow 0.3s ease;
+}
+
+.comments-section:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.comments-section h3 {
+  font-size: 1.4rem;
+  color: #236ad3;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comment-item {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #edf2f7;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.comment-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.comment-item p {
+  margin: 0;
+  font-size: 1rem;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.comment-item p strong {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.comment-item p:first-child {
+  font-size: 0.95rem;
+  color: #718096;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-comment-btn,
+.save-comment-btn,
+.cancel-comment-btn,
+.submit-comment-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-comment-btn {
+  background: #3182ce;
+  color: #ffffff;
+  margin-top: 10px;
+}
+
+.edit-comment-btn:hover {
+  background: #2b6cb0;
+  transform: translateY(-2px);
+}
+
+.save-comment-btn {
+  background: #3182ce;
+  color: #ffffff;
+}
+
+.save-comment-btn:hover {
+  background: #2b6cb0;
+  transform: translateY(-2px);
+}
+
+.cancel-comment-btn {
+  background: #718096;
+  color: #ffffff;
+  margin-left: 10px;
+}
+
+.cancel-comment-btn:hover {
+  background: #5a677c;
+  transform: translateY(-2px);
+}
+
+.submit-comment-btn {
+  background: #3182ce;
+  color: #ffffff;
+  align-self: flex-end;
+}
+
+.submit-comment-btn:hover {
+  background: #2b6cb0;
+  transform: translateY(-2px);
+}
+
+.edit-comment-form,
+.add-comment-form {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.edit-comment-form textarea,
+.add-comment-form textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 15px;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #4a5568;
+  background: #ffffff;
+  resize: vertical;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.edit-comment-form textarea:focus,
+.add-comment-form textarea:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.comment-actions {
+  display: flex;
+  gap: 10px;
+  align-self: flex-end;
 }
 
 /* Loading State */
@@ -1718,80 +1876,137 @@ body {
 }
 
 /* Login Page Specific Styles */
-.login {
-  max-width: 400px;
-  margin: 5rem auto;
-  padding: 30px;
-  background-color: white;
+/* Login Page Styles */
+.login-container {
+  background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  max-width: 90%;
+  margin: 3rem auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden; /* Ensures rounded corners are respected */
 }
 
-.login h2 {
-  font-size: 2rem;
-  margin-bottom: 25px;
-  color: #4CAF50;
+.login-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.login-header {
+  background: #314357;
+  padding: 20px;
   text-align: center;
-  font-family: 'Roboto', Arial, sans-serif;
+  border-top-left-radius: 10px; /* Round top-left corner */
+  border-top-right-radius: 10px; /* Round top-right corner */
 }
 
-.login form {
+.login-logo {
+  max-width: 150px;
+  height: auto;
+}
+
+.login-container h2 {
+  font-size: 2rem;
+  color: #1a202c;
+  font-weight: 700;
+  text-align: center;
+  margin: 30px 40px 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf2f7;
+  letter-spacing: -0.5px;
+}
+
+.login-container form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  padding: 0 40px;
 }
 
-.login input {
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.form-group input {
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
   font-size: 1rem;
-  font-family: 'Roboto', Arial, sans-serif;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.login input:focus {
-  border-color: #4CAF50;
+.form-group input:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 5px rgba(49, 130, 206, 0.3);
   outline: none;
 }
 
-.login input::placeholder {
-  color: #999;
+.form-group input::placeholder {
+  color: #a0aec0;
 }
 
-.login button[type="submit"] {
+.login-container button[type="submit"] {
   padding: 12px;
-  background-color: #4CAF50;
-  color: white;
+  background-color: #3182ce;
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-  font-family: 'Roboto', Arial, sans-serif;
-}
-
-.login button[type="submit"]:hover {
-  background-color: #45a049;
-  transform: translateY(-2px);
-}
-
-.login button:not([type="submit"]) {
-  padding: 10px;
-  background-color: #888;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-  margin-top: 15px;
-  font-family: 'Roboto', Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 320px; /* Explicit width to match content area (400px - 80px) */
+  margin: 0 auto; /* Center within form */
+  box-sizing: border-box;
 }
 
-.login button:not([type="submit"]):hover {
-  background-color: #666;
+.login-container button[type="submit"]:hover {
+  background-color: #2b6cb0;
   transform: translateY(-2px);
+}
+
+.login-container .switch-button {
+  padding: 10px;
+  background-color: #718096;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 320px; /* Matches submit button width */
+  margin: 15px auto 60px; /* Increased bottom margin for more white space */
+  box-sizing: border-box;
+  display: block; /* Ensures margin: auto works for centering */
+}
+
+.login-container .switch-button:hover {
+  background-color: #5a677c;
+  transform: translateY(-2px);
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 1rem;
+  text-align: center;
+  margin: 0 40px 20px;
+  background: rgba(229, 62, 62, 0.1);
+  padding: 10px;
+  border-radius: 8px;
 }
 
 /* Responsive Design */
