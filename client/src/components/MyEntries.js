@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import SideNav from './SideNav';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const MyEntries = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [sidebarEntries, setSidebarEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for newest first, 'asc' for oldest first
   const history = useHistory();
 
   useEffect(() => {
@@ -21,8 +23,14 @@ const MyEntries = ({ token }) => {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setEntries(res.data);
-        setSidebarEntries(res.data);
+        // Sort entries based on timestamp
+        const sortedEntries = res.data.sort((a, b) =>
+          sortOrder === 'desc'
+            ? new Date(b.timestamp) - new Date(a.timestamp)
+            : new Date(a.timestamp) - new Date(b.timestamp)
+        );
+        setEntries(sortedEntries);
+        setSidebarEntries(sortedEntries);
       } catch (err) {
         console.error('Error fetching user entries:', err.response?.data || err.message);
         if (err.response?.status === 401) {
@@ -39,7 +47,7 @@ const MyEntries = ({ token }) => {
     };
 
     fetchData();
-  }, [token, history]);
+  }, [token, history, sortOrder]);
 
   const handleCardClick = (id) => {
     history.push(`/entry/${id}`);
@@ -56,6 +64,10 @@ const MyEntries = ({ token }) => {
 
   const handleAddNewEntry = () => {
     history.push('/journal');
+  };
+
+  const handleSortToggle = () => {
+    setSortOrder(prevOrder => (prevOrder === 'desc' ? 'asc' : 'desc'));
   };
 
   const getContentPreview = (htmlContent) => {
@@ -97,6 +109,9 @@ const MyEntries = ({ token }) => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <button onClick={handleSortToggle} className="sort-btn" title={`Sort by date (${sortOrder === 'desc' ? 'newest first' : 'oldest first'})`}>
+              <i className="fas fa-sort"></i>
+            </button>
             <button onClick={handleAddNewEntry} className="add-entry-btn">
               Add New Entry
             </button>
