@@ -5,6 +5,7 @@ import MyJournal from './components/MyJournal';
 import CommunityFeed from './components/CommunityFeed';
 import EntryDetail from './components/EntryDetail';
 import Account from './components/Account';
+import MyEntries from './components/MyEntries';
 
 const App = () => {
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
@@ -29,10 +30,13 @@ const App = () => {
           {token ? <MyJournal token={token} /> : <CommunityFeed token={null} />}
         </Route>
         <Route path="/entry/:id">
-          <EntryDetail token={token} /> {/* Accessible to all, token optional */}
+          <EntryDetail token={token} />
         </Route>
         <Route path="/account">
           {token ? <Account token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/my-entries">
+          {token ? <MyEntries token={token} /> : <CommunityFeed token={null} />}
         </Route>
         <Route path="/">
           <CommunityFeed token={token} />

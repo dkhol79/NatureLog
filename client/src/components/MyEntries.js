@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import SideNav from './SideNav';
 
-const CommunityFeed = ({ token }) => {
+const MyEntries = ({ token }) => {
   const [entries, setEntries] = useState([]);
   const [sidebarEntries, setSidebarEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,37 +11,35 @@ const CommunityFeed = ({ token }) => {
   const history = useHistory();
 
   useEffect(() => {
-    const fetchCommunityEntries = async () => {
-      try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal/community`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        setEntries(res.data);
-      } catch (err) {
-        console.error('Error fetching community feed:', err.response?.data || err.message);
-      }
-    };
+    if (!token) {
+      history.push('/login');
+      return;
+    }
 
-    const fetchSidebarEntries = async () => {
-      if (!token) return;
+    const fetchUserEntries = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/journal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        setEntries(res.data);
         setSidebarEntries(res.data);
       } catch (err) {
-        console.error('Error fetching sidebar entries:', err.response?.data || err.message);
+        console.error('Error fetching user entries:', err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          history.push('/login');
+        }
       }
     };
 
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([fetchCommunityEntries(), fetchSidebarEntries()]);
+      await fetchUserEntries();
       setLoading(false);
     };
 
     fetchData();
-  }, [token]);
+  }, [token, history]);
 
   const handleCardClick = (id) => {
     history.push(`/entry/${id}`);
@@ -53,9 +51,7 @@ const CommunityFeed = ({ token }) => {
   };
 
   const handleSidebarCardClick = (entryId) => {
-    if (token) {
-      history.push(`/entry/${entryId}`);
-    }
+    history.push(`/entry/${entryId}`);
   };
 
   const handleAddNewEntry = () => {
@@ -76,7 +72,7 @@ const CommunityFeed = ({ token }) => {
     return (
       entry.title.toLowerCase().includes(lowerSearch) ||
       entry.category?.toLowerCase().includes(lowerSearch) ||
-      entry.username?.toLowerCase().includes(lowerSearch)
+      entry.location?.toLowerCase().includes(lowerSearch)
     );
   });
 
@@ -91,12 +87,12 @@ const CommunityFeed = ({ token }) => {
         handleCardClick={handleSidebarCardClick}
       />
       <main className="main-content">
-        <div className="community-feed-container">
-          <h2>Community Feed</h2>
+        <div className="my-entries-container">
+          <h2>My Entries</h2>
           <div className="search-and-add">
             <input
               type="text"
-              placeholder="Search by title, category, username..."
+              placeholder="Search by title, category, location..."
               className="search-bar"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -107,7 +103,7 @@ const CommunityFeed = ({ token }) => {
           </div>
           <div className="entries-grid">
             {filteredEntries.length === 0 ? (
-              <p>No public entries found.</p>
+              <p>No entries found.</p>
             ) : (
               filteredEntries.map(entry => (
                 <div
@@ -132,12 +128,13 @@ const CommunityFeed = ({ token }) => {
                     {getContentPreview(entry.content)}
                   </p>
                   <p><strong>Category:</strong> <span>{entry.category}</span></p>
+                  <p><strong>Location:</strong> <span>{entry.location || 'N/A'}</span></p>
                   <p><strong>Weather:</strong> <span>
                     {entry.weather?.main?.temp
                       ? `${((entry.weather.main.temp - 273.15) * 9/5 + 32).toFixed(1)}°F`
                       : 'N/A'}
                   </span></p>
-                  <p><strong>By:</strong> <span>{entry.username}</span></p>
+                  <p><strong>Public:</strong> <span>{entry.isPublic ? 'Yes' : 'No'}</span></p>
                 </div>
               ))
             )}
@@ -148,4 +145,4 @@ const CommunityFeed = ({ token }) => {
   );
 };
 
-export default CommunityFeed;
+export default MyEntries;

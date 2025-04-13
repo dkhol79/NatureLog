@@ -98,49 +98,72 @@ body {
   max-height: calc(100vh - 350px);
 }
 
+/* Entries Header */
+.entries-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.entries-header h3 {
+  font-size: 1.3rem;
+  color: #ecf0f1;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.view-all-btn {
+  background: none;
+  border: none;
+  color: #77b6e1;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.3s ease;
+}
+
+.view-all-btn:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
 /* Custom Scrollbar Styles */
 .sidebar-entries::-webkit-scrollbar {
-  width: 0px; /* Hidden by default */
-  transition: width 0.3s ease; /* Smooth width transition */
+  width: 0px;
+  transition: width 0.3s ease;
 }
 
 .sidebar-entries::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0); /* Transparent by default */
+  background: rgba(255, 255, 255, 0);
   border-radius: 4px;
   transition: background 0.3s ease;
 }
 
 .sidebar-entries::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0); /* Transparent by default */
+  background: rgba(255, 255, 255, 0);
   border-radius: 4px;
   transition: background 0.3s ease;
 }
 
-/* Show scrollbar when hovering over sidebar */
 .sidebar:hover .sidebar-entries::-webkit-scrollbar {
-  width: 8px; /* Visible width when hovering */
+  width: 8px;
 }
 
 .sidebar:hover .sidebar-entries::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05); /* Visible track */
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .sidebar:hover .sidebar-entries::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3); /* Visible thumb */
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-entries::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5); /* Brighter on direct hover */
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.sidebar-entries h3 {
-  font-size: 1.3rem;
-  margin-bottom: 15px;
-  color: #ecf0f1;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
+/* Sidebar Entry */
 .sidebar-entry {
   background-color: rgba(255, 255, 255, 0.05);
   padding: 12px 15px;
@@ -177,25 +200,6 @@ body {
   color: #ecf0f1;
   font-weight: 500;
   margin: 0;
-}
-
-.sidebar-entry button {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  padding: 4px 8px;
-  background-color: #3498db;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.sidebar-entry button:hover {
-  background-color: #2980b9;
 }
 
 /* Sidebar Logo */
@@ -1567,7 +1571,8 @@ body {
 }
 
 /* Community Feed Page */
-.community-feed-container {
+.community-feed-container,
+.my-entries-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
@@ -1575,35 +1580,44 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
-  width:1200px;
+  width: 1200px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Community Feed Container Hover */
-.community-feed-container:hover {
-    trasform: translateY(-5px);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+.community-feed-container:hover,
+.my-entries-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* Title */
-.community-feed-container h2 {
+.community-feed-container h2,
+.my-entries-container h2 {
   font-size: 2.5rem;
   margin-bottom: 20px;
   color: #1a202c;
   text-align: center;
 }
 
+/* Search and Add Container */
+.search-and-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin: 0 auto 40px;
+  max-width: 700px;
+}
+
 /* Search Bar */
 .search-bar {
-  display: block;
+  flex: 1;
   width: 100%;
   max-width: 600px;
-  margin: 0 auto 40px;
   padding: 12px 20px;
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
@@ -1611,6 +1625,23 @@ body {
   outline: none;
   border-color: #38a169;
   box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.2);
+}
+
+/* Add New Entry Button */
+.add-entry-btn {
+  background-color: #38a169;
+  color: #ffffff;
+  padding: 12px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.add-entry-btn:hover {
+  background-color: #2f855a;
+  transform: translateY(-2px);
 }
 
 /* Entries Grid */

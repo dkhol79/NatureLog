@@ -33,7 +33,7 @@ const SideNav = ({
           </button>
           <button
             className="sidebar-btn"
-            onClick={() => history.push('/register')} // Fixed to navigate to /register
+            onClick={() => history.push('/register')}
           >
             Sign Up
           </button>
@@ -70,6 +70,12 @@ const SideNav = ({
           <i className="fa fa-user"></i> Account
         </button>
         <button
+          className={`sidebar-btn ${currentPath === '/my-entries' ? 'active' : ''}`}
+          onClick={() => history.push('/my-entries')}
+        >
+          <i className="fa fa-list"></i> My Entries
+        </button>
+        <button
           className="logout-btn"
           onClick={onLogoutClick}
         >
@@ -77,7 +83,15 @@ const SideNav = ({
         </button>
       </nav>
       <div className="sidebar-entries">
-        <h3>Entries</h3>
+        <div className="entries-header">
+          <h3>Entries</h3>
+          <button
+            className="view-all-btn"
+            onClick={() => history.push('/my-entries')}
+          >
+            View All
+          </button>
+        </div>
         {entries.length > 0 ? (
           entries.map(entry => (
             <div
@@ -97,7 +111,7 @@ const SideNav = ({
         <p>© 2025 NatureLog</p>
       </div>
     </aside>
-  );
+    );
 };
 
 export default SideNav;
