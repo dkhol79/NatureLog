@@ -486,32 +486,50 @@ body {
   box-shadow: 0 0 5px rgba(49, 130, 206, 0.3);
 }
 
+/* Separator Line */
+.editor-separator-line {
+  border: 0;
+  border-top: 1px solid #a0aec0;
+  margin: 10px 0;
+  width: 100%;
+}
+
 /* Image Styles */
-.editor-image {
+.image-alignment-container {
+  display: block;
+  margin: 10px 0;
+}
+
+.image-wrapper {
+  display: block;
   max-width: 100%;
+}
+
+.image-alignment-container img {
+  display: block;
+  width: 100%;
   height: auto;
+  max-width: 100%;
+}
+
+.resizable-image-container {
+  position: relative;
   display: inline-block;
-  margin: 10px;
+}
+
+.resizable-image-container img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
   border: 1px solid #edf2f7;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
 }
 
-.editor-image:hover {
+.resizable-image-container img:hover {
   transform: scale(1.02);
-}
-
-.resizable-image-container {
-  position: relative;
-  display: inline-block;
-  margin: 5px;
-}
-
-.resizable-image-container img {
-  display: block;
-  max-width: 100%;
-  height: auto;
 }
 
 .resize-handle {
@@ -525,33 +543,141 @@ body {
   border-radius: 2px;
 }
 
-.resize-handle.top-left {
-  top: -5px;
-  left: -5px;
-  cursor: nwse-resize;
-}
-
-.resize-handle.top-right {
-  top: -5px;
-  right: -5px;
-  cursor: nesw-resize;
-}
-
-.resize-handle.bottom-left {
-  bottom: -5px;
-  left: -5px;
-  cursor: nesw-resize;
-}
-
-.resize-handle.bottom-right {
-  bottom: -5px;
-  right: -5px;
-  cursor: nwse-resize;
-}
-
-.editable-content {
+/* Caption Styles */
+.image-caption {
+  color: #a0aec0;
+  font-style: italic;
+  margin-top: 5px;
+  font-size: 0.9rem;
   outline: none;
-  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.image-caption:empty:before {
+  content: "Enter caption here...";
+  color: #a0aec0;
+}
+
+.image-caption:focus {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+/* Audio Styles */
+.audio-wrapper {
+  margin: 10px 0;
+}
+
+.audio-player {
+  display: none; /* Hide the native audio element */
+}
+
+.custom-audio-controls {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.custom-audio-controls .play-pause-btn,
+.custom-audio-controls .mute-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4a5568;
+  font-size: 16px;
+  margin: 0 5px;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.custom-audio-controls .play-pause-btn svg,
+.custom-audio-controls .mute-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.custom-audio-controls .play-pause-btn:hover,
+.custom-audio-controls .mute-btn:hover {
+  color: #3182ce;
+}
+
+.custom-audio-controls .current-time,
+.custom-audio-controls .duration {
+  color: #4a5568;
+  font-size: 12px;
+  margin: 0 5px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.custom-audio-controls .timeline,
+.custom-audio-controls .volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  outline: none;
+  margin: 0 5px;
+}
+
+.custom-audio-controls .timeline {
+  flex: 1;
+}
+
+.custom-audio-controls .volume-slider {
+  width: 60px;
+}
+
+.custom-audio-controls .timeline::-webkit-slider-thumb,
+.custom-audio-controls .volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #4a5568;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.custom-audio-controls .timeline:hover::-webkit-slider-thumb,
+.custom-audio-controls .volume-slider:hover::-webkit-slider-thumb {
+  background: #3182ce;
+}
+
+.custom-audio-controls .timeline::-moz-range-thumb,
+.custom-audio-controls .volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #4a5568;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.custom-audio-controls .timeline:hover::-moz-range-thumb,
+.custom-audio-controls .volume-slider:hover::-moz-range-thumb {
+  background: #3182ce;
+}
+
+/* Firefox specific styles */
+.audio-player::-moz-range-track {
+  background: #edf2f7;
+  border-radius: 4px;
+}
+
+.audio-player::-moz-range-thumb {
+  background: #3182ce;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 /* Editor Toolbar */
@@ -611,6 +737,7 @@ body {
   padding: 4px;
   font-size: 0.9rem;
   height: 28px;
+  width: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -620,11 +747,6 @@ body {
 .text-formatting-section select {
   min-width: 100px;
   padding: 4px 8px;
-}
-
-.text-formatting-section button {
-  width: 28px;
-  height: 28px;
 }
 
 .text-formatting-section select:hover,
@@ -699,8 +821,6 @@ body {
 
 .emoji-picker {
   position: absolute;
-  bottom: 100%;
-  left: 0;
   background-color: white;
   border: 1px solid #edf2f7;
   border-radius: 8px;
@@ -709,7 +829,7 @@ body {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 5px;
-  z-index: 10;
+  z-index: 1000;
 }
 
 .emoji-button {
@@ -732,8 +852,6 @@ body {
 
 .audio-options-dropdown {
   position: absolute;
-  bottom: 100%;
-  right: 0;
   background-color: white;
   border: 1px solid #edf2f7;
   border-radius: 8px;
@@ -742,7 +860,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  z-index: 10;
+  z-index: 1000;
   width: 180px;
 }
 

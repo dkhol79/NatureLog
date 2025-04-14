@@ -21,7 +21,7 @@ mongoose.connect(process.env.MONGODB_URI)
 const corsOptions = {
   origin: [
     'http://localhost:80',
-    'https://slightly-script-thick-via.trycloudflare.com',
+    'https://chambers-appearing-phases-obtained.trycloudflare.com',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
