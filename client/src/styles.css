@@ -1332,6 +1332,7 @@ body {
   color: #1a202c;
   font-weight: 700;
   line-height: 1.2;
+  padding-top: 30px; /* Increased padding-top to add more space above the title */
   padding-bottom: 20px;
   border-bottom: 1px solid #edf2f7;
   letter-spacing: -0.5px;

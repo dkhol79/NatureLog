@@ -138,11 +138,16 @@ const CommunityFeed = ({ token }) => {
                     </p>
                   </div>
                   {entry.photos?.length > 0 && (
-                    <img
-                      src={`${process.env.REACT_APP_API_URL}/${entry.photos[0]}`}
-                      alt={entry.title}
-                      className="entry-preview-image"
-                    />
+                    <div className="entry-image-container">
+                      <img
+                        src={`${process.env.REACT_APP_API_URL}/${entry.photos[0]}`}
+                        alt={`${entry.title} preview`}
+                        className="entry-preview-image"
+                        onError={(e) => {
+                          e.target.style.display = 'none'; // Hide image if it fails to load
+                        }}
+                      />
+                    </div>
                   )}
                   <p className="entry-preview">
                     {getContentPreview(entry.content)}
