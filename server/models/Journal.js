@@ -17,6 +17,7 @@ const journalSchema = new mongoose.Schema({
   location: { type: String, required: true },
   weather: { type: Object, default: { main: { temp: 'N/A' } } },
   isPublic: { type: Boolean, default: false },
+  communityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', default: null },
   timestamp: { type: Date, default: Date.now },
   date: { type: String, required: true },
   photos: [{ type: String }],
@@ -46,5 +47,6 @@ const journalSchema = new mongoose.Schema({
 // Add indexes for better query performance
 journalSchema.index({ userId: 1 });
 journalSchema.index({ timestamp: -1 });
+journalSchema.index({ communityId: 1 });
 
 module.exports = mongoose.model('Journal', journalSchema);

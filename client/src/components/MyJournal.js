@@ -28,6 +28,8 @@ const MyJournal = ({ token }) => {
   const [animalSearch, setAnimalSearch] = useState('');
   const [plantSuggestions, setPlantSuggestions] = useState([]);
   const [animalSuggestions, setAnimalSuggestions] = useState([]);
+  const [communities, setCommunities] = useState([]);
+  const [selectedCommunity, setSelectedCommunity] = useState(''); // New state for journal community
   const history = useHistory();
   const editorRef = useRef(null);
 
@@ -57,6 +59,7 @@ const MyJournal = ({ token }) => {
     setAnimalSearch('');
     setPlantSuggestions([]);
     setAnimalSuggestions([]);
+    setSelectedCommunity(''); // Reset community
     if (editorRef.current) editorRef.current.innerHTML = '';
   };
 
@@ -112,7 +115,22 @@ const MyJournal = ({ token }) => {
       }
     };
 
+    const fetchCommunities = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/communities`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCommunities(res.data);
+      } catch (err) {
+        console.error('Error fetching communities:', err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          handleLogout();
+        }
+      }
+    };
+
     fetchEntries();
+    fetchCommunities();
   }, [token, history]);
 
   const handlePlantSearch = async (e) => {
@@ -291,6 +309,7 @@ const MyJournal = ({ token }) => {
     setWeather(entry.weather);
     setPlantsObserved(entry.plantsObserved || []);
     setAnimalsObserved(entry.animalsObserved || []);
+    setSelectedCommunity(entry.communityId || ''); // Set community
     if (entry.photos) setPhotos(entry.photos.map(photo => photo));
     if (entry.videos) setVideos(entry.videos.map(video => video));
     if (entry.audio) setAudio(entry.audio);
@@ -311,6 +330,9 @@ const MyJournal = ({ token }) => {
     formData.append('location', location);
     formData.append('isPublic', isPublic);
     formData.append('date', date);
+    if (selectedCommunity) {
+      formData.append('communityId', selectedCommunity); // Add community to form data
+    }
     if (locationData.lat && locationData.lng) {
       formData.append('lat', parseFloat(locationData.lat));
       formData.append('lng', parseFloat(locationData.lng));
@@ -345,7 +367,6 @@ const MyJournal = ({ token }) => {
       photos.forEach((photo, index) => {
         if (photo instanceof File) {
           formData.append('photos', photo);
-          console.log(`Appending photo ${index}:`, photo.name, photo.size);
         }
       });
     }
@@ -354,19 +375,12 @@ const MyJournal = ({ token }) => {
       videos.forEach((video, index) => {
         if (video instanceof File) {
           formData.append('videos', video);
-          console.log(`Appending video ${index}:`, video.name, video.size);
         }
       });
     }
 
     if (audio && (audio instanceof Blob || audio instanceof File)) {
       formData.append('audio', audio);
-      console.log('Appending audio:', audio.name || 'recorded audio', audio.size);
-    }
-
-    console.log('FormData contents:');
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value instanceof File ? `${value.name} (${value.size} bytes)` : value);
     }
 
     try {
@@ -377,11 +391,6 @@ const MyJournal = ({ token }) => {
           'Content-Type': 'multipart/form-data',
         },
       };
-
-      console.log('Sending request to:', editingEntry ?
-        `${process.env.REACT_APP_API_URL}/api/journal/${editingEntry._id}` :
-        `${process.env.REACT_APP_API_URL}/api/journal`);
-      console.log('Request config:', config);
 
       if (editingEntry) {
         res = await axios.put(
@@ -398,20 +407,11 @@ const MyJournal = ({ token }) => {
         setEntries([...entries, res.data]);
       }
 
-      console.log('Response:', res.data);
-
       // Reset form after successful submission
       resetForm();
       setEditingEntry(null);
     } catch (err) {
-      console.error('Submission error:', {
-        message: err.message,
-        response: err.response ? {
-          status: err.response.status,
-          data: err.response.data,
-          headers: err.response.headers
-        } : 'No response received'
-      });
+      console.error('Submission error:', err.response?.data || err.message);
       if (err.response?.status === 401) {
         handleLogout();
       } else {
@@ -601,6 +601,25 @@ const MyJournal = ({ token }) => {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+            <div className="community-container">
+              <label htmlFor="community">Assign to Community</label>
+              <select
+                id="community"
+                value={selectedCommunity}
+                onChange={(e) => setSelectedCommunity(e.target.value)}
+                disabled={communities.length === 0}
+              >
+                <option value="">Select Community (Optional)</option>
+                {communities.map((community) => (
+                  <option key={community._id} value={community._id}>
+                    {community.name}
+                  </option>
+                ))}
+              </select>
+              {communities.length === 0 && (
+                <p className="no-communities">Join a community to assign entries</p>
               )}
             </div>
             <label>

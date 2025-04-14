@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const Journal = require('../models/Journal');
 const User = require('../models/User');
+const Community = require('../models/Community');
 require('dotenv').config();
 
 const uploadDir = path.join(__dirname, '../Uploads');
@@ -78,7 +79,7 @@ const authenticate = (req, res, next) => {
 router.get('/metadata', authenticate, async (req, res) => {
   try {
     const entries = await Journal.find({ userId: req.user.id }).select(
-      'category location geolocation weather plantsObserved animalsObserved'
+      'category location geolocation weather plantsObserved animalsObserved communityId'
     );
 
     // Summarize category counts
@@ -109,6 +110,7 @@ router.get('/metadata', authenticate, async (req, res) => {
         category: entry.category,
         location: entry.location,
         geolocation: entry.geolocation,
+        communityId: entry.communityId,
       })),
       categoryCounts,
       locations,
@@ -122,7 +124,7 @@ router.get('/metadata', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => {
-  const { title, content, category, lat, lng, location, isPublic, date, plantsObserved, animalsObserved } = req.body;
+  const { title, content, category, lat, lng, location, isPublic, date, plantsObserved, animalsObserved, communityId } = req.body;
 
   console.log('POST /api/journal - Request body:', req.body);
   console.log('POST /api/journal - Uploaded files:', req.files);
@@ -164,6 +166,17 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     return res.status(404).json({ error: 'User not found' });
   }
 
+  // Validate communityId if provided
+  if (communityId) {
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(400).json({ error: `Community ID ${communityId} not found` });
+    }
+    if (!community.members.includes(req.user.id)) {
+      return res.status(403).json({ error: `User is not a member of community ${communityId}` });
+    }
+  }
+
   const parsedLocation = parseTownState(location);
 
   let plants = [];
@@ -202,6 +215,7 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
     location: parsedLocation,
     weather: weatherData,
     isPublic: isPublic === 'true',
+    communityId: communityId || null,
     timestamp: new Date(),
     username: user.username,
     photos: req.files?.photos?.map(f => f.path) || [],
@@ -250,6 +264,36 @@ router.get('/community', async (req, res) => {
   }
 });
 
+router.get('/community/:id', authenticate, async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) {
+      return res.status(404).json({ error: 'Community not found' });
+    }
+
+    // Check access permissions
+    if (
+      community.communityType === 'private' &&
+      !community.members.includes(req.user.id) &&
+      !community.admins.includes(req.user.id)
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Find entries where communityId matches
+    const entries = await Journal.find({
+      communityId: req.params.id,
+    })
+      .populate('userId', 'username')
+      .sort({ timestamp: -1 });
+
+    res.json(entries);
+  } catch (err) {
+    console.error('Error fetching community entries:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const entry = await Journal.findById(req.params.id).populate('userId', 'username');
@@ -282,7 +326,7 @@ router.get('/:id', async (req, res) => {
 });
 
 router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) => {
-  const { title, content, category, location, isPublic, date, lat, lng, plantsObserved, animalsObserved } = req.body;
+  const { title, content, category, location, isPublic, date, lat, lng, plantsObserved, animalsObserved, communityId } = req.body;
 
   const validCategories = ['Wildlife', 'Plants', 'Scenic Views', 'Weather', 'Birds', 'Geology', 'Water Bodies'];
 
@@ -291,6 +335,17 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
     if (!existingEntry) return res.status(404).json({ error: 'Entry not found' });
     if (existingEntry.userId.toString() !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Validate communityId if provided
+    if (communityId) {
+      const community = await Community.findById(communityId);
+      if (!community) {
+        return res.status(400).json({ error: `Community ID ${communityId} not found` });
+      }
+      if (!community.members.includes(req.user.id)) {
+        return res.status(403).json({ error: `User is not a member of community ${communityId}` });
+      }
     }
 
     const updateData = {};
@@ -304,6 +359,7 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
     }
     if (location) updateData.location = parseTownState(location);
     if (isPublic !== undefined) updateData.isPublic = isPublic === 'true';
+    if (communityId !== undefined) updateData.communityId = communityId || null;
     if (date) updateData.date = date;
 
     if (plantsObserved) {
@@ -356,7 +412,7 @@ router.put('/:id', authenticate, upload.fields(uploadFields), async (req, res) =
           updateData.weather = response.data;
         }
       } catch (err) {
-        console.error('Weather API error during update:', err.message);
+        console.error('Error fetching weather:', err.message);
         updateData.weather = existingEntry.weather;
       }
     } else {

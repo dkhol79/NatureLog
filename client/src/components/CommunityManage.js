@@ -25,6 +25,7 @@ const CommunityManage = ({ token }) => {
   const [searchUser, setSearchUser] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [entries, setEntries] = useState([]);
+  const [admins, setAdmins] = useState([]); // New state for admins
   const history = useHistory();
 
   useEffect(() => {
@@ -42,6 +43,8 @@ const CommunityManage = ({ token }) => {
         setCommunityType(data.communityType);
         setIsMature(data.isMature);
         setMembers(data.membersDetails || []);
+        // Set admins based on members who are admins
+        setAdmins((data.membersDetails || []).filter(member => member.isAdmin));
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to fetch community');
       }
@@ -116,6 +119,7 @@ const CommunityManage = ({ token }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMembers(res.data.membersDetails || []);
+      setAdmins((res.data.membersDetails || []).filter(member => member.isAdmin));
       setSearchResults(searchResults.filter(user => user._id !== userId));
     } catch (err) {
       setError('Failed to add member');
@@ -133,6 +137,7 @@ const CommunityManage = ({ token }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMembers(res.data.membersDetails || []);
+      setAdmins((res.data.membersDetails || []).filter(member => member.isAdmin));
     } catch (err) {
       setError('Failed to update admin status');
     }
@@ -144,6 +149,7 @@ const CommunityManage = ({ token }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMembers(members.filter(member => member._id !== userId));
+      setAdmins(admins.filter(admin => admin._id !== userId));
     } catch (err) {
       setError('Failed to remove member');
     }
@@ -157,6 +163,7 @@ const CommunityManage = ({ token }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMembers(members.filter(member => member._id !== userId));
+      setAdmins(admins.filter(admin => admin._id !== userId));
     } catch (err) {
       setError('Failed to ban member');
     }
@@ -304,6 +311,18 @@ const CommunityManage = ({ token }) => {
                   </div>
                 </li>
               ))}
+            </ul>
+            <h4>Administrators ({admins.length})</h4>
+            <ul className="admins-list">
+              {admins.length > 0 ? (
+                admins.map((admin) => (
+                  <li key={admin._id}>
+                    {admin.username} ({admin.email})
+                  </li>
+                ))
+              ) : (
+                <li>No administrators assigned.</li>
+              )}
             </ul>
           </div>
         </div>

@@ -110,10 +110,6 @@ const CommunityDetail = ({ token }) => {
               {new Date(community.createdAt).toLocaleDateString()}
             </p>
           </div>
-          <div className="community-content">
-            <h3>Community Content</h3>
-            <p>No posts available yet. Check back later!</p>
-          </div>
         </div>
       </main>
     </div>

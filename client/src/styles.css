@@ -371,6 +371,47 @@ body {
   font-weight: 500;
 }
 
+/* Community Container */
+.community-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.community-container label {
+  font-size: 1rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.community-container select {
+  padding: 12px 15px;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #4a5568;
+  background: #f7fafc;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+}
+
+.community-container select:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 5px rgba(49, 130, 206, 0.3);
+  outline: none;
+}
+
+.community-container select:disabled {
+  background: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.no-communities {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-top: 5px;
+}
+
 /* Button Container */
 .button-container {
   display: flex;
@@ -636,7 +677,7 @@ body {
   border-color: #2b6cb0;
 }
 
-/* Rest of the styles remain unchanged */
+/* Color Picker */
 .color-picker-container {
   position: relative;
   display: inline-flex;
@@ -901,8 +942,8 @@ body {
 
 .observed-item-details {
   flex: 2;
-  margin-left: 50px; /* Increased spacing between image and text */
-  margin-right: 50px; /* Increased spacing between text and file input */
+  margin-left: 50px;
+  margin-right: 50px;
 }
 
 .observed-item-details p {
@@ -926,7 +967,7 @@ body {
   color: #3182ce;
   cursor: pointer;
   flex: 1;
-  margin-right: 50px; /* Increased spacing between file input and Remove button */
+  margin-right: 50px;
 }
 
 .observed-item input[type="file"]::-webkit-file-upload-button {
@@ -1074,7 +1115,7 @@ body {
   border-color: #3182ce;
 }
 
-/* Prompt bubble (slightly different styling to distinguish it) */
+/* Prompt bubble */
 .prompt-bubble {
   background: #ffffff;
   margin-left: 40px;
@@ -1157,12 +1198,6 @@ body {
 .delete-btn:hover {
   background: #c53030;
   transform: translateY(-2px);
-}
-
-.entry-detail-content {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
 }
 
 .entry-detail-content .entry-date {
@@ -2514,6 +2549,25 @@ body {
 .community-content p {
   font-size: 0.95rem;
   color: #718096;
+}
+
+.manage-btn {
+  padding: 10px 24px;
+  background-color: #3182ce;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.manage-btn:hover {
+  background-color: #2b6cb0;
+  transform: translateY(-2px);
 }
 
 /* Community Manage Specific Styles */

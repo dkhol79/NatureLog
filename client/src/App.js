@@ -10,6 +10,7 @@ import CommunityCreate from './components/CommunityCreate';
 import MyCommunities from './components/MyCommunities';
 import CommunityDetail from './components/CommunityDetail';
 import CommunityManage from './components/CommunityManage';
+import CommunityPage from './components/CommunityPage';
 
 const App = () => {
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
@@ -53,6 +54,9 @@ const App = () => {
         </Route>
         <Route path="/community/:id">
           {token ? <CommunityDetail token={token} /> : <CommunityFeed token={null} />}
+        </Route>
+        <Route path="/community-page/:id">
+          {token ? <CommunityPage token={token} /> : <CommunityFeed token={null} />}
         </Route>
         <Route path="/">
           <CommunityFeed token={token} />

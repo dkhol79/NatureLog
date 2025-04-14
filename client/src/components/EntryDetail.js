@@ -16,6 +16,7 @@ const EntryDetail = ({ token }) => {
   const [commentContent, setCommentContent] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [entryCommunity, setEntryCommunity] = useState("");
 
   useEffect(() => {
     const fetchEntry = async () => {
@@ -30,6 +31,24 @@ const EntryDetail = ({ token }) => {
           });
           setCurrentUserId(accountRes.data._id);
           setIsOwner(accountRes.data._id === res.data.userId);
+
+          // Fetch community details for the entry only
+          const communityIds = res.data.communityId ? [res.data.communityId] : [];
+          if (communityIds.length > 0) {
+            const communityPromises = communityIds.map(id =>
+              axios.get(`${process.env.REACT_APP_API_URL}/api/communities/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            );
+            const communityResponses = await Promise.all(communityPromises);
+            const communityMap = communityResponses.reduce((acc, { data }) => {
+              acc[data._id] = data.name;
+              return acc;
+            }, {});
+            if (res.data.communityId) {
+              setEntryCommunity(communityMap[res.data.communityId] || "Unknown");
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching entry:", err.response?.data || err.message);
@@ -564,6 +583,7 @@ const EntryDetail = ({ token }) => {
               <p><strong>By:</strong> {entry.username}</p>
               <p><strong>Created:</strong> {new Date(entry.timestamp).toLocaleDateString()}</p>
               <p><strong>Time:</strong> {new Date(entry.timestamp).toLocaleTimeString()}</p>
+              <p><strong>Community:</strong> {entryCommunity || "None"}</p>
               <p><strong>Public:</strong> {entry.isPublic ? "Yes" : "No"}</p>
             </div>
             {token && isOwner && (

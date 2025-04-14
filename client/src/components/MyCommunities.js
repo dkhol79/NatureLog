@@ -50,7 +50,7 @@ const MyCommunities = ({ token }) => {
   }, [token, sortOrder]);
 
   const handleCommunityClick = (id) => {
-    history.push(`/community/${id}`);
+    history.push(`/community-page/${id}`); // Changed to navigate to CommunityPage
   };
 
   const handleLogout = () => {
