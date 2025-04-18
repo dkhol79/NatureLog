@@ -1,29 +1,27 @@
 describe('Community Creation and Management Flow', () => {
+  const serverUrl = 'https://stockholm-anne-heard-fed.trycloudflare.com';
+
   beforeEach(() => {
-    // Mock API responses for login and community endpoints
-    cy.intercept('POST', '/api/auth/login', {
+    // Mock login
+    cy.intercept('POST', `${serverUrl}/api/auth/login`, {
       statusCode: 200,
       body: { token: 'mock-token' },
     }).as('login');
 
-    cy.intercept('GET', '/api/journal', {
-      statusCode: 200,
-      body: [],
-    }).as('fetchJournal');
-
-    // Visit login page
+    // Log in
     cy.visit('/login');
+    cy.get('input[id="email"]').type('test@example.com');
+    cy.get('input[id="password"]').type('password123');
+    cy.get('button[type="submit"]').contains('Login').click();
+    cy.wait('@login');
+    cy.url().should('include', '/journal');
+    // Adjust selector for user indicator
+    cy.get('nav').contains('testuser').should('exist');
   });
 
   it('should allow a user to create a community, update it, manage members, and see it in My Communities', () => {
-    // Login
-    cy.get('input[id="email"]').type('test@example.com');
-    cy.get('input[id="password"]').type('password123');
-    cy.get('button[type="submit"]').click();
-    cy.wait('@login');
-
     // Navigate to create community
-    cy.intercept('POST', '/api/communities', {
+    cy.intercept('POST', `${serverUrl}/api/communities`, {
       statusCode: 201,
       body: {
         _id: '123',
@@ -36,22 +34,22 @@ describe('Community Creation and Management Flow', () => {
       },
     }).as('createCommunity');
 
-    cy.get('button').contains('Create New Community').click();
-    cy.url().should('include', '/community-create');
+    cy.get('button').contains('Create New Community').click(); // Adjust selector
+    cy.url().should('include', '/community-create'); // Adjust route
 
     // Fill out and submit community creation form
-    cy.get('input[placeholder="Enter community name"]').type('Test Community');
-    cy.get('textarea[placeholder="Describe your community"]').type('A test community');
-    cy.get('input[type="checkbox"]').first().check();
-    cy.get('textarea[placeholder="List community rules"]').type('No spam');
-    cy.get('select').select('public');
-    cy.get('button').contains('Create Community').click();
+    cy.get('input[placeholder="Enter community name"]').type('Test Community'); // Adjust selector
+    cy.get('textarea[placeholder="Describe your community"]').type('A test community'); // Adjust selector
+    cy.get('input[type="checkbox"]').first().check(); // Adjust selector
+    cy.get('textarea[placeholder="List community rules"]').type('No spam'); // Adjust selector
+    cy.get('select').select('public'); // Adjust selector
+    cy.get('button').contains('Create Community').click(); // Adjust selector
 
     cy.wait('@createCommunity');
-    cy.url().should('include', '/my-communities');
+    cy.url().should('include', '/my-communities'); // Adjust route
 
     // Verify community in My Communities
-    cy.intercept('GET', '/api/communities', {
+    cy.intercept('GET', `${serverUrl}/api/communities`, {
       statusCode: 200,
       body: [
         {
@@ -74,7 +72,7 @@ describe('Community Creation and Management Flow', () => {
     cy.get('.community-card').contains('Test Community').should('exist');
 
     // Navigate to manage community
-    cy.intercept('GET', '/api/communities/123', {
+    cy.intercept('GET', `${serverUrl}/api/communities/123`, {
       statusCode: 200,
       body: {
         _id: '123',
@@ -91,14 +89,14 @@ describe('Community Creation and Management Flow', () => {
     }).as('fetchCommunity');
 
     cy.get('.community-card').click();
-    cy.url().should('include', '/community-page/123');
-    cy.get('button').contains('View Community Details').click();
-    cy.url().should('include', '/community/123');
-    cy.get('button').contains('Manage').click();
-    cy.url().should('include', '/community-manage/123');
+    cy.url().should('include', '/community-page/123'); // Adjust route
+    cy.get('button').contains('View Community Details').click(); // Adjust selector
+    cy.url().should('include', '/community/123'); // Adjust route
+    cy.get('button').contains('Manage').click(); // Adjust selector
+    cy.url().should('include', '/community-manage/123'); // Adjust route
 
     // Update community details
-    cy.intercept('PUT', '/api/communities/123', {
+    cy.intercept('PUT', `${serverUrl}/api/communities/123`, {
       statusCode: 200,
       body: {
         _id: '123',
@@ -111,42 +109,42 @@ describe('Community Creation and Management Flow', () => {
       },
     }).as('updateCommunity');
 
-    cy.get('input[placeholder="Enter community name"]').clear().type('Updated Community');
-    cy.get('textarea[placeholder="Describe your community"]').clear().type('Updated description');
-    cy.get('button').contains('Update Community').click();
+    cy.get('input[placeholder="Enter community name"]').clear().type('Updated Community'); // Adjust selector
+    cy.get('textarea[placeholder="Describe your community"]').clear().type('Updated description'); // Adjust selector
+    cy.get('button').contains('Update Community').click(); // Adjust selector
 
     cy.wait('@updateCommunity');
-    cy.url().should('include', '/community/123');
+    cy.url().should('include', '/community/123'); // Adjust route
 
     // Manage members
-    cy.intercept('GET', '/api/users/search?query=user2', {
+    cy.intercept('GET', `${serverUrl}/api/users/search?query=user2`, {
       statusCode: 200,
       body: [{ _id: 'user2', username: 'user2', email: 'user2@example.com' }],
     }).as('searchUsers');
 
-    cy.intercept('POST', '/api/communities/123/members', {
+    cy.intercept('POST', `${serverUrl}/api/communities/123/members`, {
       statusCode: 200,
       body: {},
     }).as('addMember');
 
-    cy.get('button').contains('Manage').click();
-    cy.get('input[placeholder="Search for users to add..."]').type('user2');
-    cy.get('button').contains('Search').click();
+    cy.get('button').contains('Manage').click(); // Adjust selector
+    cy.get('input[placeholder="Search for users to add..."]').type('user2'); // Adjust selector
+    cy.get('button').contains('Search').click(); // Adjust selector
     cy.wait('@searchUsers');
-    cy.get('button').contains('Add').click();
+    cy.get('button').contains('Add').click(); // Adjust selector
     cy.wait('@addMember');
 
     // Toggle admin status
-    cy.intercept('PUT', '/api/communities/123/admin', {
+    cy.intercept('PUT', `${serverUrl}/api/communities/123/admin`, {
       statusCode: 200,
       body: {},
     }).as('toggleAdmin');
 
-    cy.get('button').contains('Make Admin').click();
+    cy.get('button').contains('Make Admin').click(); // Adjust selector
     cy.wait('@toggleAdmin');
 
     // Verify updated community in My Communities
-    cy.intercept('GET', '/api/communities', {
+    cy.intercept('GET', `${serverUrl}/api/communities`, {
       statusCode: 200,
       body: [
         {
@@ -164,7 +162,7 @@ describe('Community Creation and Management Flow', () => {
       ],
     }).as('fetchUpdatedCommunities');
 
-    cy.visit('/my-communities');
+    cy.visit('/my-communities'); // Adjust route
     cy.wait('@fetchUpdatedCommunities');
     cy.get('.community-card').contains('Updated Community').should('exist');
   });

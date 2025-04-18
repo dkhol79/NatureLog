@@ -2,17 +2,11 @@ describe('Community Interaction Flow', () => {
   const serverUrl = 'https://stockholm-anne-heard-fed.trycloudflare.com';
 
   beforeEach(() => {
-    // Mock login and user data
+    // Mock login
     cy.intercept('POST', `${serverUrl}/api/auth/login`, {
       statusCode: 200,
       body: { token: 'mock-token', user: { id: 'user1', email: 'test@example.com' } },
     }).as('login');
-
-    // Mock user data endpoint, if used
-    cy.intercept('GET', `${serverUrl}/api/users/me`, {
-      statusCode: 200,
-      body: { id: 'user1', email: 'test@example.com', username: 'testuser' },
-    }).as('getUser');
 
     cy.intercept('GET', `${serverUrl}/api/communities`, {
       statusCode: 200,
@@ -34,13 +28,13 @@ describe('Community Interaction Flow', () => {
 
     // Log in
     cy.visit('/login');
-    cy.get('input[id="email"]').type('test@example.com'); // Adjust selector
-    cy.get('input[id="password"]').type('password123'); // Adjust selector
-    cy.get('button[type="submit"]').click(); // Adjust selector
+    cy.get('input[id="email"]').type('test@example.com');
+    cy.get('input[id="password"]').type('password123');
+    cy.get('button[type="submit"]').contains('Login').click();
     cy.wait('@login');
-    // Verify login via UI (adjust selector for user indicator)
-    cy.get('nav').contains('testuser').should('exist'); // Replace with your user indicator
-    cy.url().should('include', '/dashboard'); // Adjust to your post-login route
+    cy.url().should('include', '/journal');
+    // Adjust selector for user indicator (e.g., nav or profile element showing username)
+    cy.get('nav').contains('testuser').should('exist');
   });
 
   it('should allow a user to join a community and post a comment', () => {
