@@ -45,3 +45,187 @@ I think NatureLog stands out because it is designed specifically for nature love
 - Integration with a weather API to automatically log weather data like temperature, humidity, etc.
 - Geolocation and mapping integration to track where each entry was made.
 - Reflection prompts and categorized journal entries to encourage deeper engagement.
+
+# NatureLog App Setup and Access Instructions
+
+## Prerequisites
+
+- **Node.js** and **npm** installed on your system.
+- Clone the NatureLog repository:
+
+  ```bash
+  git clone <repository-url>
+  ```
+
+- Install dependencies for both client and server:
+
+  ```bash
+  cd NatureLog/client
+  npm install
+
+  cd ../server
+  npm install
+  ```
+
+- Install root-level dev dependencies (e.g., `concurrently`):
+
+  ```bash
+  cd ..
+  npm install concurrently --save-dev
+  ```
+
+- Add this to the root `package.json`:
+
+  ```json
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "cd client && npm start",
+    "server": "cd server && npm start"
+  }
+  ```
+
+---
+
+## Running the App
+
+Start both client and server with a single command:
+
+```bash
+npm run dev
+```
+
+- Client runs on http://localhost:80
+- Server runs on http://localhost:5000
+
+---
+
+## Expose Locally with Cloudflare Tunnel
+
+### Install `cloudflared`
+
+Download and install from:  
+https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+
+### Authenticate
+
+```bash
+cloudflared login
+```
+
+### Expose the Client
+
+```bash
+cloudflared tunnel --url http://localhost:80
+```
+
+> Save the generated URL (e.g., `https://exists-kit-prints-context.trycloudflare.com`)
+
+### Expose the Server
+
+```bash
+cloudflared tunnel --url http://localhost:5000
+```
+
+> Save the generated URL (e.g., `https://stockholm-anne-heard-fed.trycloudflare.com`)
+
+---
+
+## Configure Environment Variables
+
+In the client directory:
+
+```bash
+cd NatureLog/client
+echo "REACT_APP_API_URL=https://stockholm-anne-heard-fed.trycloudflare.com" > .env
+```
+
+> Replace with your actual **server** tunnel URL.
+
+Restart the app:
+
+```bash
+cd ..
+npm run dev
+```
+
+---
+
+## CORS Configuration (Backend)
+
+Edit `server/server.js`:
+
+```js
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+
+app.use(cors({
+  origin: 'https://exists-kit-prints-context.trycloudflare.com',
+  credentials: true,
+}));
+```
+
+> Replace with your **client** tunnel URL.
+
+Install `cors` if needed:
+
+```bash
+cd NatureLog/server
+npm install cors
+```
+
+---
+
+## Access the App
+
+Visit the **client tunnel URL** in your browser  
+(e.g., `https://exists-kit-prints-context.trycloudflare.com`)
+
+The app should load and API requests will route through the **server tunnel URL**.
+
+---
+
+## Testing the App
+
+### Cypress E2E Tests
+
+Update `client/cypress.config.js`:
+
+```js
+module.exports = {
+  e2e: {
+    baseUrl: 'https://exists-kit-prints-context.trycloudflare.com',
+    specPattern: 'cypress/e2e/**/*.spec.{js,jsx,ts,tsx}',
+  },
+};
+```
+
+Run Cypress:
+
+```bash
+cd client
+npx cypress open
+```
+
+### Jest Unit Tests
+
+```bash
+cd client
+npm test
+```
+
+---
+
+## Troubleshooting
+
+- **Tunnel URLs Change** – Update `.env` and `cypress.config.js` if URLs change.
+- **CORS Errors** – Confirm backend allows requests from the client’s tunnel URL.
+- **API Errors** – Test endpoints using curl/Postman:
+  
+  ```bash
+  curl https://stockholm-anne-heard-fed.trycloudflare.com/api/auth/login
+  ```
+
+- **Test Failures** – Use Cypress DevTools (F12) to inspect and debug.
+
