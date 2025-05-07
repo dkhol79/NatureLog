@@ -143,7 +143,7 @@ router.post('/', authenticate, upload.fields(uploadFields), async (req, res) => 
   let weatherData = null;
   if (lat && lng) {
     try {
-      const apiKey = process.env.OPENWEATHER_API_KEY || 'YOUR_API_KEY';
+      const apiKey = process.env.OPENWEATHER_API_KEY || 'YOUR_OPENWEATHER_API_KEY';
       if (!apiKey) {
         console.error('OpenWeather API key is missing');
         weatherData = null;
